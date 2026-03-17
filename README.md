@@ -1,7 +1,7 @@
-# 🚀 Práctica Profesional – SISTI Soluciones
+# 🚀 Práctica Profesional – SITI Soluciones
 
 Bienvenido/a a este repositorio 👩‍💻  
-Aquí encontrarás todos los **scripts, desarrollos y soluciones técnicas** realizados durante mi práctica profesional en **SISTI Soluciones**.
+Aquí encontrarás todos los **scripts, desarrollos y soluciones técnicas** realizados durante mi práctica profesional en **SITI Soluciones**.
 
 ---
 
