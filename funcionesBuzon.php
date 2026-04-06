@@ -174,113 +174,151 @@ function buzon_inicio_nuevo($accion = 'R', $id_edoc = NULL)
         <section class="buzon-unificado">
             <div class="buzon-panel">
 
-                <div class="buzon-panel-top">
-                    <div class="buzon-head">
-                        <div class="buzon-title-icon">
-                            <i class="bi <?php echo $icono; ?>"></i>
+                <!-- CABECERA FIJA -->
+                <div class="buzon-panel-fijo">
+
+                    <div class="buzon-panel-top">
+                        <div class="buzon-head">
+                            <div class="buzon-title-icon">
+                                <i class="bi <?php echo $icono; ?>"></i>
+                            </div>
+
+                            <div class="buzon-title-text">
+                                <h4><?php echo $titulo; ?></h4>
+                                <span>Gestión profesional de comunicaciones y documentos</span>
+                            </div>
                         </div>
 
-                        <div class="buzon-title-text">
-                            <h4><?php echo $titulo; ?></h4>
-                            <span>Gestión profesional de comunicaciones y documentos</span>
+                        <div class="buzon-head-actions">
+                            <button
+                                type="button"
+                                class="gm-btn-icon"
+                                onclick="xajax_buzon_inicio('<?php echo $accion; ?>');"
+                                title="Actualizar">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="gm-btn-icon gm-btn-primary"
+                                onclick="xajax_envmas_inicio();"
+                                title="Redactar">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="buzon-head-actions">
-                        <button type="button" class="gm-btn-icon" onclick="xajax_buzon_inicio('<?php echo $accion; ?>');" title="Actualizar">
-                            <i class="bi bi-arrow-clockwise"></i>
-                        </button>
-
-                        <button type="button" class="gm-btn-icon gm-btn-primary" onclick="xajax_envmas_inicio();" title="Redactar">
-                            <i class="bi bi-pencil-square"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="buzon-barra-unica">
-                    <div class="barra-busqueda">
-                        <i class="bi bi-search"></i>
-                        <input
-                            type="text"
-                            id="busquedaGeneral"
-                            class="barra-input"
-                            placeholder="Buscar en <?php echo strtolower($titulo); ?>"
-                            oninput="programarBusquedaGeneral()">
-                    </div>
-
-                    <div class="barra-botones">
-                        <button type="button" class="gm-btn-icon" onclick="ejecutarBusquedaGeneral()" title="Buscar">
+                    <div class="buzon-barra-unica">
+                        <div class="barra-busqueda">
                             <i class="bi bi-search"></i>
-                        </button>
+                            <input
+                                type="text"
+                                id="busquedaGeneral"
+                                class="barra-input"
+                                placeholder="Buscar en <?php echo strtolower($titulo); ?>"
+                                oninput="programarBusquedaGeneral()">
+                        </div>
 
-                        <button type="button" class="gm-btn-icon" onclick="limpiarBusquedaGeneral()" title="Limpiar">
-                            <i class="bi bi-x-lg"></i>
-                        </button>
+                        <div class="barra-botones">
+                            <button
+                                type="button"
+                                class="gm-btn-icon"
+                                onclick="ejecutarBusquedaGeneral()"
+                                title="Buscar">
+                                <i class="bi bi-search"></i>
+                            </button>
 
-                        <button type="button" class="gm-btn-icon" title="Seleccionar todo" onclick="
+                            <button
+                                type="button"
+                                class="gm-btn-icon"
+                                onclick="limpiarBusquedaGeneral()"
+                                title="Limpiar">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="gm-btn-icon"
+                                title="Seleccionar todo"
+                                onclick="
                             var chk = document.getElementsByClassName('chk_carp');
                             var todosMarcados = true;
-                            for(var i = 0; i < chk.length; i++){
-                                if(!chk[i].checked){
+
+                            for (var i = 0; i < chk.length; i++) {
+                                if (!chk[i].checked) {
                                     todosMarcados = false;
                                     break;
                                 }
                             }
-                            for(var i = 0; i < chk.length; i++){
-                                chk[i].checked = !todosMarcados;
+
+                            for (var j = 0; j < chk.length; j++) {
+                                chk[j].checked = !todosMarcados;
                             }
 
                             var checkTodos = document.getElementById('checkTodos');
-                            if(checkTodos){
-                                checkTodos.checked = !todosMarcados && chk.length > 0;
+                            if (checkTodos) {
+                                checkTodos.checked = (!todosMarcados && chk.length > 0);
                             }
 
                             if (typeof actualizarAccionesMasivas === 'function') {
                                 actualizarAccionesMasivas();
                             }
                         ">
-                            <i class="bi bi-check2-square"></i>
-                        </button>
+                                <i class="bi bi-check2-square"></i>
+                            </button>
+                        </div>
                     </div>
+
+                    <div id="accionesMasivasBox" class="buzon-masivas-unico">
+                        <div class="buzon-masivas-info">
+                            <i class="bi bi-stack"></i>
+                            <span id="cantidadSeleccionados">0</span> documentos seleccionados
+                        </div>
+
+                        <div class="buzon-masivas-botones">
+                            <?php echo $botonesMasivos; ?>
+                        </div>
+                    </div>
+
                 </div>
+                <!-- FIN CABECERA FIJA -->
 
-                <div id="accionesMasivasBox" class="buzon-masivas-unico">
-                    <div class="buzon-masivas-info">
-                        <i class="bi bi-stack"></i>
-                        <span id="cantidadSeleccionados">0</span> documentos seleccionados
-                    </div>
+                <form id="idFormulario" class="buzon-formulario">
 
-                    <div class="buzon-masivas-botones">
-                        <?php echo $botonesMasivos; ?>
-                    </div>
-                </div>
+                    <!-- SOLO ESTA PARTE HACE SCROLL -->
+                    <div class="buzon-tabla-scroll">
+                        <div class="table-responsive buzon-table-responsive">
+                            <table class="buzon-table">
+                                <thead>
+                                    <tr>
+                                        <th width="45" class="th-check">
+                                            <label class="check-header-wrap">
+                                                <input
+                                                    type="checkbox"
+                                                    id="checkTodos"
+                                                    onclick="
+                                    var chk = document.getElementsByClassName('chk_carp');
+                                    for (var i = 0; i < chk.length; i++) {
+                                        chk[i].checked = this.checked;
+                                    }
 
-                <form id="idFormulario">
-                    <div class="table-responsive">
-                        <table class="buzon-table">
-                            <thead>
-                                <tr>
-                                    <th width="45">
-                                        <input type="checkbox" id="checkTodos" onclick="
-                                            var chk = document.getElementsByClassName('chk_carp');
-                                            for(var i = 0; i < chk.length; i++){
-                                                chk[i].checked = this.checked;
-                                            }
-                                            if (typeof actualizarAccionesMasivas === 'function') {
-                                                actualizarAccionesMasivas();
-                                            }
-                                        ">
-                                    </th>
-                                    <th>Radicado</th>
-                                    <th>Asunto</th>
-                                    <th>Remitente</th>
-                                    <th>Tipo</th>
-                                    <th>Origen / Destino</th>
-                                    <th width="150">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbodyBuzon"></tbody>
-                        </table>
+                                    if (typeof actualizarAccionesMasivas === 'function') {
+                                        actualizarAccionesMasivas();
+                                    }
+                                ">
+                                            </label>
+                                        </th>
+                                        <th class="th-radicado">Radicado</th>
+                                        <th class="th-asunto">Asunto</th>
+                                        <th class="th-remitente">Remitente</th>
+                                        <th class="th-tipo">Tipo</th>
+                                        <th class="th-origen">Origen / Destino</th>
+                                        <th width="150" class="th-acciones">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyBuzon"></tbody>
+                            </table>
+                        </div>
                     </div>
 
                     <div class="buzon-footer">
@@ -296,7 +334,18 @@ function buzon_inicio_nuevo($accion = 'R', $id_edoc = NULL)
                     <input type="hidden" name="accion" id="accion" value="<?php echo $accion; ?>">
                     <input type="hidden" name="id_edoc" id="id_edoc" value="<?php echo $id_edoc; ?>">
                     <input type="hidden" name="busquedaGeneral" id="busquedaGeneralHidden" value="">
+
                 </form>
+
+                <div id="buzonLoadingModal" class="buzon-loading-modal-global" style="display:none;">
+                    <div class="buzon-loading-modal-box">
+                        <div class="buzon-loading-modal-spinner"></div>
+                        <div class="buzon-loading-modal-title">Cargando documentos</div>
+                        <div class="buzon-loading-modal-text">
+                            Espera un momento mientras se actualiza la información
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </div>
@@ -339,30 +388,24 @@ function buzon_inicio_nuevo($accion = 'R', $id_edoc = NULL)
             }
         };
 
-        window.mostrarCargandoBuzon = function (mensaje) {
-            var tbody = document.getElementById('tbodyBuzon');
-            var pag = document.getElementById('paginadorBuzon');
-            var texto = mensaje || 'Cargando documentos...';
+        window.mostrarCargandoBuzon = function (mensaje, subtitulo) {
+    var modal = document.getElementById('buzonLoadingModal');
 
-            if (tbody) {
-                tbody.innerHTML =
-                    '<tr class=\"buzon-loading-row\">' +
-                        '<td colspan=\"7\">' +
-                            '<div class=\"buzon-loading-box\">' +
-                                '<div class=\"buzon-spinner-wrap\">' +
-                                    '<div class=\"buzon-spinner\"></div>' +
-                                '</div>' +
-                                '<div class=\"buzon-loading-text\">' + texto + '</div>' +
-                                '<div class=\"buzon-loading-subtext\">Espera un momento mientras se actualiza la información</div>' +
-                            '</div>' +
-                        '</td>' +
-                    '</tr>';
-            }
+    var titulo = document.querySelector('.buzon-loading-modal-title');
+    var texto = document.querySelector('.buzon-loading-modal-text');
 
-            if (pag) {
-                pag.innerHTML = '';
-            }
-        };
+    if (titulo) {
+        titulo.innerHTML = mensaje || 'Cargando documentos';
+    }
+
+    if (texto) {
+        texto.innerHTML = subtitulo || 'Espera un momento mientras se actualiza la información';
+    }
+
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+};
 
         window.programarBusquedaGeneral = function () {
             if (window.timerBusquedaGeneral) {
@@ -496,7 +539,13 @@ function getListaDocumentos_nuevo($par)
         $contadorColapsar++;
         $arrayRadicado .= "arrayRadi.fila" . $contadorColapsar . "='" . addslashes($row['cod']) . "';";
 
-        $esNuevo   = ((int)$row['id_estd'] < 5 || (int)$row['id_estd'] == 10);
+        $esNuevo = false;
+
+        /* solo marcar como no leído en RECIBIDOS */
+        if (isset($par['accion']) && $par['accion'] == 'R') {
+            $esNuevo = ((int)$row['id_estd'] < 5 || (int)$row['id_estd'] == 10);
+        }
+
         $claseFila = $esNuevo ? 'buzon-row fila-no-leida' : 'buzon-row fila-leida';
 
         $claseSemaforo = 'semaforoNeutro';
@@ -734,25 +783,114 @@ function getListaDocumentos_nuevo($par)
     if ($totalPaginas < 1) {
         $totalPaginas = 1;
     }
+
+    $paginaActual = isset($par['startIndex']) ? (int)$par['startIndex'] : 1;
+    if ($paginaActual < 1) {
+        $paginaActual = 1;
+    }
+    if ($paginaActual > $totalPaginas) {
+        $paginaActual = $totalPaginas;
+    }
+
+    $inicio = max(1, $paginaActual - 2);
+    $fin    = min($totalPaginas, $paginaActual + 2);
     ?>
     <nav>
         <ul class="pagination justify-content-center">
-            <?php for ($i = 0; $i < $totalPaginas; $i++) { ?>
-                <li class="page-item <?php if (($par['startIndex'] - 1) == $i) echo 'active'; ?>">
+
+            <?php if ($paginaActual > 1) { ?>
+                <li class="page-item">
                     <span
                         class="page-link"
                         onclick='
-							get("startIndex").value=<?php echo $i + 1; ?>;
-							get("paginadorBuzon").innerHTML="";
-							if(typeof mostrarCargandoBuzon === "function"){
-								mostrarCargandoBuzon("Cargando documentos...");
-							}
-							xajax_getListaDocumentos(xajax.getFormValues("idFormulario"));
-						'>
-                        <?php echo $i + 1; ?>
+                        get("startIndex").value=1;
+                        get("paginadorBuzon").innerHTML="";
+                        if(typeof mostrarCargandoBuzon === "function"){
+                            mostrarCargandoBuzon("Cargando documentos...");
+                        }
+                        xajax_getListaDocumentos(xajax.getFormValues("idFormulario"));
+                    '>
+                        Primero
+                    </span>
+                </li>
+
+                <li class="page-item">
+                    <span
+                        class="page-link"
+                        onclick='
+                        get("startIndex").value=<?php echo $paginaActual - 1; ?>;
+                        get("paginadorBuzon").innerHTML="";
+                        if(typeof mostrarCargandoBuzon === "function"){
+                            mostrarCargandoBuzon("Cargando documentos...");
+                        }
+                        xajax_getListaDocumentos(xajax.getFormValues("idFormulario"));
+                    '>
+                        &laquo;
                     </span>
                 </li>
             <?php } ?>
+
+            <?php if ($inicio > 1) { ?>
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            <?php } ?>
+
+            <?php for ($i = $inicio; $i <= $fin; $i++) { ?>
+                <li class="page-item <?php echo ($paginaActual == $i) ? 'active' : ''; ?>">
+                    <span
+                        class="page-link"
+                        onclick='
+                        get("startIndex").value=<?php echo $i; ?>;
+                        get("paginadorBuzon").innerHTML="";
+                        if(typeof mostrarCargandoBuzon === "function"){
+                            mostrarCargandoBuzon("Cargando documentos...");
+                        }
+                        xajax_getListaDocumentos(xajax.getFormValues("idFormulario"));
+                    '>
+                        <?php echo $i; ?>
+                    </span>
+                </li>
+            <?php } ?>
+
+            <?php if ($fin < $totalPaginas) { ?>
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+            <?php } ?>
+
+            <?php if ($paginaActual < $totalPaginas) { ?>
+                <li class="page-item">
+                    <span
+                        class="page-link"
+                        onclick='
+                        get("startIndex").value=<?php echo $paginaActual + 1; ?>;
+                        get("paginadorBuzon").innerHTML="";
+                        if(typeof mostrarCargandoBuzon === "function"){
+                            mostrarCargandoBuzon("Cargando documentos...");
+                        }
+                        xajax_getListaDocumentos(xajax.getFormValues("idFormulario"));
+                    '>
+                        &raquo;
+                    </span>
+                </li>
+
+                <li class="page-item">
+                    <span
+                        class="page-link"
+                        onclick='
+                        get("startIndex").value=<?php echo $totalPaginas; ?>;
+                        get("paginadorBuzon").innerHTML="";
+                        if(typeof mostrarCargandoBuzon === "function"){
+                            mostrarCargandoBuzon("Cargando documentos...");
+                        }
+                        xajax_getListaDocumentos(xajax.getFormValues("idFormulario"));
+                    '>
+                        &Uacute;ltimo
+                    </span>
+                </li>
+            <?php } ?>
+
         </ul>
     </nav>
 <?php
@@ -808,11 +946,20 @@ function getListaDocumentos_nuevo($par)
 		}catch(e){}
 	");
 
+    $xres->addScript("
+    try{
+        var modal = document.getElementById('buzonLoadingModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }catch(e){}
+");
+
     return utf8_encode($xres->getXML());
 }
 
-//MODAL 
 
+//MODAL 
 function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $propio = '')
 {
     require("../../../libraries/valida/biblio.php");
@@ -1003,20 +1150,167 @@ function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $p
     }
 
     /* =========================================================
+       PREPARAR ARCHIVO ADJUNTO
+    ========================================================= */
+    $filename_nom = '';
+    $extension = '';
+    $icono_dw = "<i class='bi bi-file-earmark-fill gm-file-generic'></i>";
+    $rutaWeb = '';
+    $viewerId = 'gmDocxViewer_' . intval($id_doc) . '_' . mt_rand(1000, 9999);
+
+    if ($arch != '') {
+        $zip = new ZipArchive();
+        $var_cons = $arch;
+        $filename = '../../../imgs_arch/' . $arch;
+
+        if ($zip->open($filename) === true) {
+            $tmpAbs = realpath(__DIR__ . '/../../tmp');
+            if ($tmpAbs === false) {
+                @mkdir(__DIR__ . '/../../tmp', 0777, true);
+                $tmpAbs = realpath(__DIR__ . '/../../tmp');
+            }
+
+            $fileInsideIndex = -1;
+            $fileInsideName = '';
+
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $tmpName = $zip->getNameIndex($i);
+                if (!$tmpName) {
+                    continue;
+                }
+                $tmpExt = strtolower(pathinfo($tmpName, PATHINFO_EXTENSION));
+                if (in_array($tmpExt, array('pdf', 'docx', 'doc', 'rtf'))) {
+                    $fileInsideIndex = $i;
+                    $fileInsideName = $tmpName;
+                    break;
+                }
+            }
+
+            if ($fileInsideIndex >= 0) {
+                $filename_nom = basename($fileInsideName);
+                $extension = strtolower(pathinfo($filename_nom, PATHINFO_EXTENSION));
+
+                if ($extension == 'pdf') {
+                    $icono_dw = "<i class='bi bi-file-earmark-pdf-fill gm-file-pdf'></i>";
+                } elseif ($extension == 'rtf' || $extension == 'docx' || $extension == 'doc') {
+                    $icono_dw = "<i class='bi bi-file-earmark-word-fill gm-file-word'></i>";
+                } else {
+                    $icono_dw = "<i class='bi bi-file-earmark-fill gm-file-generic'></i>";
+                }
+
+                if ($tmpAbs) {
+                    $contenido = $zip->getFromIndex($fileInsideIndex);
+                    if ($contenido !== false) {
+                        $nombreSeguro = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $filename_nom);
+                        $nombreFinal = 'preview_' . $id_doc . '_' . time() . '_' . mt_rand(1000, 9999) . '_' . $nombreSeguro;
+                        $rutaAbsFinal = $tmpAbs . DIRECTORY_SEPARATOR . $nombreFinal;
+
+                        if (@file_put_contents($rutaAbsFinal, $contenido) !== false) {
+                            $rutaWeb = '../../tmp/' . rawurlencode($nombreFinal);
+                        }
+                    }
+                }
+            }
+
+            $zip->close();
+        }
+    }
+
+    /* =========================================================
        RENDER
     ========================================================= */
     ob_start();
 ?>
     <div class="gm-doc-modal">
+
         <div class="gm-doc-header-card">
-            <div class="gm-doc-header-main">
-                <div class="gm-doc-icon">
-                    <i class="bi bi-file-earmark-text"></i>
+            <div class="gm-doc-header-top">
+                <div class="gm-doc-header-main">
+                    <div class="gm-doc-icon">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </div>
+
+                    <div class="gm-doc-title-wrap">
+                        <h3 class="gm-doc-title">Información del documento</h3>
+                        <div class="gm-doc-subtitle">Consulta detallada, recorrido y adjuntos del documento</div>
+                    </div>
                 </div>
 
-                <div class="gm-doc-title-wrap">
-                    <h3 class="gm-doc-title">Información del documento</h3>
-                    <div class="gm-doc-subtitle">Consulta detallada, recorrido y adjuntos del documento</div>
+                <div class="gm-doc-header-actions">
+                    <div class="gm-doc-actions-label">
+                        <i class="bi bi-lightning-charge"></i>
+                        <span>Acciones disponibles</span>
+                    </div>
+
+                    <div class="gm-doc-actions">
+                        <?php
+                        if (is_array($estados) && count($estados) > 0) {
+                            foreach ($estados as $paso) {
+                                switch ($paso) {
+                                    case 6:
+                                        $mostrar = true;
+                                        if (($tip_doc == 'si' && $propio == 's' && $accion == 'R')) {
+                                            $mostrar = false;
+                                        }
+                                        if ($mostrar) {
+                        ?>
+                                            <button type="button" class="btn gm-action-btn gm-action-dark"
+                                                onclick="try{ parent.xajax_buzon_observacion(<?php echo $id_doc; ?>,'<?php echo $tip_doc; ?>','conf','<?php echo $id_edoc; ?>'); }catch(e){alert(e);}">
+                                                <i class="bi bi-check-square-fill"></i> Confirmar
+                                            </button>
+                                        <?php
+                                        }
+                                        break;
+
+                                    case 9:
+                                        ?>
+                                        <button type="button" class="btn gm-action-btn gm-action-blue"
+                                            onclick="try{ parent.xajax_buzon_observacion(<?php echo $id_doc; ?>,'<?php echo $tip_doc; ?>','remi','<?php echo $id_edoc; ?>'); }catch(e){alert(e);}">
+                                            <i class="bi bi-send-check-fill"></i> Remitir
+                                        </button>
+                                    <?php
+                                        break;
+
+                                    case 10:
+                                    ?>
+                                        <button type="button" class="btn gm-action-btn gm-action-yellow"
+                                            onclick="try{ parent.xajax_buzon_observacion(<?php echo $id_doc; ?>,'<?php echo $tip_doc; ?>','tras','<?php echo $id_edoc; ?>'); }catch(e){alert(e);}">
+                                            <i class="bi bi-folder-x"></i> Trasladar
+                                        </button>
+                                    <?php
+                                        break;
+
+                                    case 11:
+                                    ?>
+                                        <button type="button" class="btn gm-action-btn gm-action-red"
+                                            onclick="try{ parent.menuArchivar(<?php echo $id_doc; ?>,'<?php echo $tip_doc; ?>','<?php echo $id_edoc; ?>'); }catch(e){alert(e);}">
+                                            <i class="bi bi-trash"></i> Archivar
+                                        </button>
+                            <?php
+                                        break;
+                                }
+                            }
+                        }
+
+                        if ($mostrarResponder) {
+                            ?>
+                            <button type="button" class="btn gm-action-btn gm-action-gray"
+                                onclick="try{ parent.xajax_envmas_inicio('<?php echo $id_doc; ?>','<?php echo $tip_doc; ?>'); }catch(e){alert(e);}">
+                                <i class="bi bi-pencil-fill"></i> Responder
+                            </button>
+                        <?php
+                        }
+
+                        if ($accion == 'A') {
+                        ?>
+                            <button type="button" class="btn gm-action-btn gm-action-soft"
+                                onclick="try{ parent.xajax_buzon_desarchivar('<?php echo $id_doc; ?>','<?php echo $tip_doc; ?>'); }catch(e){alert(e);}">
+                                <i class="bi bi-folder-symlink"></i> Desarchivar
+                            </button>
+                        <?php
+                        }
+                        ?>
+                    </div>
                 </div>
             </div>
 
@@ -1039,81 +1333,6 @@ function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $p
         </div>
 
         <div class="gm-doc-body">
-            <div class="gm-doc-section">
-                <div class="gm-doc-section-head">
-                    <h4><i class="bi bi-lightning-charge"></i> Acciones disponibles</h4>
-                </div>
-
-                <div class="gm-doc-actions">
-                    <?php
-                    if (is_array($estados) && count($estados) > 0) {
-                        foreach ($estados as $paso) {
-                            switch ($paso) {
-                                case 6:
-                                    $mostrar = true;
-                                    if (($tip_doc == 'si' && $propio == 's' && $accion == 'R')) {
-                                        $mostrar = false;
-                                    }
-                                    if ($mostrar) {
-                    ?>
-                                        <button type="button" class="btn gm-action-btn gm-action-dark"
-                                            onclick="try{ parent.xajax_buzon_observacion(<?php echo $id_doc; ?>,'<?php echo $tip_doc; ?>','conf','<?php echo $id_edoc; ?>'); }catch(e){alert(e);}">
-                                            <i class="bi bi-check-square-fill"></i> Confirmar
-                                        </button>
-                                    <?php
-                                    }
-                                    break;
-
-                                case 9:
-                                    ?>
-                                    <button type="button" class="btn gm-action-btn gm-action-blue"
-                                        onclick="try{ parent.xajax_buzon_observacion(<?php echo $id_doc; ?>,'<?php echo $tip_doc; ?>','remi','<?php echo $id_edoc; ?>'); }catch(e){alert(e);}">
-                                        <i class="bi bi-send-check-fill"></i> Remitir
-                                    </button>
-                                <?php
-                                    break;
-
-                                case 10:
-                                ?>
-                                    <button type="button" class="btn gm-action-btn gm-action-yellow"
-                                        onclick="try{ parent.xajax_buzon_observacion(<?php echo $id_doc; ?>,'<?php echo $tip_doc; ?>','tras','<?php echo $id_edoc; ?>'); }catch(e){alert(e);}">
-                                        <i class="bi bi-folder-x"></i> Trasladar
-                                    </button>
-                                <?php
-                                    break;
-
-                                case 11:
-                                ?>
-                                    <button type="button" class="btn gm-action-btn gm-action-red"
-                                        onclick="try{ parent.menuArchivar(<?php echo $id_doc; ?>,'<?php echo $tip_doc; ?>','<?php echo $id_edoc; ?>'); }catch(e){alert(e);}">
-                                        <i class="bi bi-trash"></i> Archivar
-                                    </button>
-                        <?php
-                                    break;
-                            }
-                        }
-                    }
-
-                    if ($mostrarResponder) {
-                        ?>
-                        <button type="button" class="btn gm-action-btn gm-action-gray"
-                            onclick="try{ parent.xajax_envmas_inicio('<?php echo $id_doc; ?>','<?php echo $tip_doc; ?>'); }catch(e){alert(e);}">
-                            <i class="bi bi-pencil-fill"></i> Responder
-                        </button>
-                    <?php
-                    }
-
-                    if ($accion == 'A') {
-                    ?>
-                        <button type="button" class="btn gm-action-btn gm-action-soft"
-                            onclick="try{ parent.xajax_buzon_desarchivar('<?php echo $id_doc; ?>','<?php echo $tip_doc; ?>'); }catch(e){alert(e);}">
-                            <i class="bi bi-folder-symlink"></i> Desarchivar
-                        </button>
-                    <?php
-                    }
-                    ?>
-                </div>
-            </div>
 
             <div class="gm-doc-grid">
                 <div class="gm-doc-card">
@@ -1173,68 +1392,67 @@ function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $p
                     </div>
                 </div>
 
-                <div class="gm-doc-card">
-                    <div class="gm-doc-card-head">
+                <div class="gm-doc-card gm-doc-card-adjuntos">
+                    <div class="gm-doc-card-head gm-doc-card-head-compact">
                         <h4><i class="bi bi-paperclip"></i> Adjuntos</h4>
+
+                        <?php if ($filename_nom != '' && $extension != '') { ?>
+                            <div class="gm-doc-file-badge">
+                                <?php echo $icono_dw; ?>
+                                <span><?php echo htmlspecialchars($filename_nom); ?></span>
+                            </div>
+                        <?php } ?>
                     </div>
 
                     <div class="gm-doc-adjunto-box">
                         <?php
-                        $filename_nom = '';
-                        $extension = '';
-
                         if ($arch != '') {
-                            $zip = new ZipArchive();
-                            $var_cons = $arch;
-                            $filename = '../../../imgs_arch/' . $arch;
-
-                            if ($zip->open($filename) == true) {
-                                $zip->extractTo('../../tmp');
-                                $filename_nom = $zip->getNameIndex(0);
-
-                                if ($filename_nom != '' && pathinfo($filename_nom, PATHINFO_EXTENSION) != '') {
-                                    $extension = strtolower(pathinfo($filename_nom, PATHINFO_EXTENSION));
-
-                                    if ($extension == 'pdf') {
-                                        $icono_dw = "<i class='bi bi-file-earmark-pdf-fill gm-file-pdf'></i>";
-                                    } elseif ($extension == 'rtf' || $extension == 'docx' || $extension == 'doc') {
-                                        $icono_dw = "<i class='bi bi-file-earmark-word-fill gm-file-word'></i>";
-                                    } else {
-                                        $icono_dw = "<i class='bi bi-file-earmark-fill gm-file-generic'></i>";
-                                    }
-
-                                    echo '<div class="gm-doc-download">';
-                                    echo '<span class="gm-doc-download-label">Descargar adjunto</span>';
-                                    echo "<a class='gm-doc-download-link' target='_blank' href='../../../build/common/files/download_file.php?id_var=16&file=$var_cons' title='Descargar Archivo'>" . $icono_dw . "<span>Descargar archivo</span></a>";
-                                    echo '</div>';
-
-                                    $zip->close();
-                                } else {
-                                    echo '<div class="gm-doc-empty">No se encontró ningún archivo o el documento se encuentra dañado.</div>';
-                                }
-                            } else {
-                                echo '<div class="gm-doc-empty">El archivo comprimido no pudo ser extraído satisfactoriamente.</div>';
-                            }
-
-                            if ($filename_nom != '') {
-                                $rutaLocal = '../../tmp/' . $filename_nom;
-
-                                // Esta ruta debe ser accesible desde navegador
-                                $rutaWeb = '../../tmp/' . rawurlencode($filename_nom);
+                            if ($filename_nom != '' && $rutaWeb != '') {
                         ?>
                                 <div class="gm-doc-preview">
                                     <?php if ($extension == 'pdf') { ?>
-                                        <object class="gm-doc-pdfview" type="application/pdf" data="<?php echo $rutaWeb; ?>"></object>
-                                    <?php } elseif ($extension == 'docx' || $extension == 'doc') { ?>
-                                        <iframe
-                                            class="gm-doc-pdfview"
-                                            src="https://view.officeapps.live.com/op/embed.aspx?src=<?php echo urlencode((isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . '/' . $rutaWeb); ?>">
-                                        </iframe>
+                                        <object class="gm-doc-pdfview" type="application/pdf" data="<?php echo $rutaWeb; ?>">
+                                            <div class="gm-doc-empty">
+                                                No se pudo mostrar el PDF. Usa la opción de descarga.
+                                            </div>
+                                        </object>
+
+                                    <?php } elseif ($extension == 'docx') { ?>
+                                        <div id="<?php echo $viewerId; ?>" class="gm-docx-render-area">
+                                            <div class="gm-doc-empty">Cargando documento por páginas...</div>
+                                        </div>
+
+                                    <?php } elseif ($extension == 'doc') { ?>
+                                        <div class="gm-doc-empty">
+                                            Vista previa no disponible para archivos .doc.
+                                            <br><br>
+                                            Descarga el archivo para visualizarlo.
+                                        </div>
+
                                     <?php } else { ?>
-                                        <div class="gm-doc-empty">Vista previa no disponible para este tipo de archivo.</div>
+                                        <div class="gm-doc-empty">
+                                            Vista previa no disponible para este tipo de archivo.
+                                        </div>
                                     <?php } ?>
                                 </div>
+
+                                <div class="gm-doc-download gm-doc-download-bottom">
+                                    <a class="gm-doc-download-link"
+                                        target="_blank"
+                                        href="../../../build/common/files/download_file.php?id_var=16&file=<?php echo urlencode($arch); ?>"
+                                        title="Descargar Archivo">
+                                        <?php echo $icono_dw; ?>
+                                        <span>Descargar archivo</span>
+                                    </a>
+                                </div>
                         <?php
+                            } elseif ($filename_nom != '' && $extension != '') {
+                                echo '<div class="gm-doc-empty">El archivo existe, pero no fue posible generar la vista previa.</div>';
+                                echo '<div class="gm-doc-download gm-doc-download-bottom">';
+                                echo "<a class='gm-doc-download-link' target='_blank' href='../../../build/common/files/download_file.php?id_var=16&file=" . urlencode($arch) . "' title='Descargar Archivo'>" . $icono_dw . "<span>Descargar archivo</span></a>";
+                                echo '</div>';
+                            } else {
+                                echo '<div class="gm-doc-empty">No se encontró ningún archivo o el documento se encuentra dañado.</div>';
                             }
                         } else {
                             echo '<div class="gm-doc-empty">No se encontró ningún archivo adjunto.</div>';
@@ -1245,34 +1463,155 @@ function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $p
             </div>
         </div>
     </div>
-<?php
+    <?php
 
     $cont = ob_get_clean();
 
     $xres->addAssign('mrcDivModalDialogCont', 'innerHTML', $cont);
     $xres->addScript("mrcCrearDialogoModal('Información del Documento', '920', '560');");
+
     $xres->addScript("
         try{
             var modalYui = document.getElementById('mrcDivModalDialogYUI');
             var modalCont = document.getElementById('mrcDivModalDialogCont');
 
-            if(modalYui){
-                modalYui.classList.add('gm-doc-yui-modal');
-                modalYui.style.overflowY = 'auto';
-                modalYui.style.overflowX = 'hidden';
-                modalYui.style.maxHeight = '85vh';
-                modalYui.style.height = '85vh';
-            }
-
-            if(modalCont){
-                modalCont.style.overflow = 'visible';
+if(modalYui){
+    modalYui.classList.add('gm-doc-yui-modal');
+    modalYui.style.overflow = 'hidden';   // ✔ correcto
+    modalYui.style.maxHeight = '85vh';
+    modalYui.style.height = '85vh';
+}
+    
+if(modalCont){
+    modalCont.style.overflowY = 'auto';   // 🔥 ESTE ES EL FIX
+    modalCont.style.overflowX = 'hidden';
+    modalCont.style.height = '100%';
+}
             }
         }catch(e){}
     ");
 
+    if ($extension == 'docx' && $rutaWeb != '') {
+        $rutaPreviewJs = addslashes($rutaWeb);
+        $viewerJsId = addslashes($viewerId);
+
+        $xres->addScript("
+            (function(){
+                function gmLoadScript(src, callback){
+                    var existing = document.querySelector('script[src=\"' + src + '\"]');
+                    if(existing){
+                        if(callback) callback();
+                        return;
+                    }
+                    var s = document.createElement('script');
+                    s.src = src;
+                    s.onload = function(){ if(callback) callback(); };
+                    s.onerror = function(){
+                        var viewer = document.getElementById('{$viewerJsId}');
+                        if(viewer){
+                            viewer.innerHTML = '<div class=\"gm-doc-empty\">No se pudo cargar la librería del visor DOCX.</div>';
+                        }
+                    };
+                    document.head.appendChild(s);
+                }
+
+                function gmRenderDocx(){
+                    var viewer = document.getElementById('{$viewerJsId}');
+                    if(!viewer){ return; }
+                                                
+                    fetch('{$rutaPreviewJs}', { cache: 'no-store' })
+                        .then(function(res){
+                            if(!res.ok){ throw new Error('No se pudo cargar el DOCX'); }
+                            return res.blob();
+                        })
+                        .then(function(blob){
+                            viewer.innerHTML = '';
+                            return docx.renderAsync(blob, viewer, null, {
+                                className: 'docx',
+                                inWrapper: true,
+                                breakPages: true,
+                                ignoreWidth: false,
+                                ignoreHeight: false,
+                                ignoreFonts: false,
+                                experimental: true,
+                                useBase64URL: true,
+                                renderHeaders: true,
+                                renderFooters: true,
+                                renderFootnotes: true
+                            });
+                        })
+                        .then(function(){
+                            setTimeout(function(){
+                                try{
+                                    var pages = viewer.querySelectorAll('.docx-wrapper > section.docx');
+                                    var fallback = viewer.querySelector('.docx-wrapper .docx');
+                                                
+                                    if (pages && pages.length > 0) {
+                                        pages.forEach(function(page){
+                                            page.style.width = '794px';
+                                            page.style.maxWidth = '794px';
+                                            page.style.minHeight = '1123px';
+                                            page.style.margin = '0 auto';
+                                            page.style.padding = '70px 60px';
+                                            page.style.boxSizing = 'border-box';
+                                            page.style.background = '#fff';
+                                            page.style.textAlign = 'left';
+                                                
+                                    var nodes = page.querySelectorAll('*');
+                                    nodes.forEach(function(el){
+                                        var computed = window.getComputedStyle(el);
+                                        var fontSize = parseFloat(computed.fontSize);
+                                                                    
+                                        if (fontSize && fontSize > 0) {
+                                            el.style.fontSize = (fontSize * 0.75) + 'px'; // 🔽 reduce 15%
+                                        }
+                                    });
+
+                                            var nodes = page.querySelectorAll('p, div, span, td, th, li, h1, h2, h3, h4, h5, h6');
+                                            nodes.forEach(function(el){
+                                                el.style.textAlign = 'left';
+                                                if (el.getAttribute('align') === 'center') {
+                                                    el.removeAttribute('align');
+                                                }
+                                            });
+                                        });
+                                    } else if (fallback) {
+                                        fallback.style.width = '794px';
+                                        fallback.style.maxWidth = '794px';
+                                        fallback.style.margin = '0 auto';
+                                        fallback.style.padding = '70px 60px';
+                                        fallback.style.boxSizing = 'border-box';
+                                        fallback.style.background = '#fff';
+                                        fallback.style.textAlign = 'left';
+
+                                        var nodes = fallback.querySelectorAll('p, div, span, td, th, li, h1, h2, h3, h4, h5, h6');
+                                        nodes.forEach(function(el){
+                                            el.style.textAlign = 'left';
+                                            if (el.getAttribute('align') === 'center') {
+                                                el.removeAttribute('align');
+                                            }
+                                        });
+                                    }
+                                }catch(e){}
+                            }, 200);
+                        })
+                        .catch(function(err){
+                            viewer.innerHTML = '<div class=\"gm-doc-empty\">Error al visualizar el archivo DOCX.</div>';
+                            try{ console.error(err); }catch(e){}
+                        });
+                }
+
+                gmLoadScript('https://unpkg.com/jszip/dist/jszip.min.js', function(){
+                    gmLoadScript('https://unpkg.com/docx-preview/dist/docx-preview.js', function(){
+                        gmRenderDocx();
+                    });
+                });
+            })();
+        ");
+    }
+
     return $xres->getXML();
 }
-
 
 function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL, $ppal = NULL, $capaDestino = 'mainCenter', $es_modal = 'no')
 {
@@ -1326,7 +1665,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
     }
 
     ob_start();
-?>
+    ?>
     <?php if ($capaDestino == 'mainCenter') { ?>
         <div class="envmas-header">
 
@@ -1619,8 +1958,8 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                             </tr>
 
                             <tr id="filmsn" style="display:none;">
-                                <td class="envmas-label">Mensaje</td>
-                                <td>
+                                <td colspan="2">
+                                    <div class="envmas-label" style="margin-bottom:6px;">Mensaje</div>
                                     <div id="div_mensaje"></div>
                                 </td>
                             </tr>
@@ -1683,7 +2022,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                         </tr>
 
                         <tr id="anx_fisico">
-                            <td class="envmas-label">Tiene anexos en físico</td>
+                            <td class="envmas-label">Tiene anexos en f&iacute;sico</td>
                             <td>
                                 <label style="margin-right:20px;">
                                     <input name="rfis" type="radio" class="inputRadioCss" value="s" />
@@ -1780,34 +2119,42 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                     <div class="envmas-title">5. Plantilla y adjuntos</div>
 
                     <table class="envmas-table">
-                        <tr id="plantilla">
-                            <td class="envmas-label">Plantilla</td>
+                        <tr id="plantilla_adjunto_wrap">
+                            <td class="envmas-label">Documento base</td>
                             <td>
-                                <input id="btn_plantilla" type="button" class="inputButtonCss" value="Descargar plantilla"
-                                    onclick="envmasDescargarPlantilla();" />
-                            </td>
-                        </tr>
+                                <div class="envmas-file-row">
+                                    <div class="envmas-file-tool">
+                                        <input
+                                            id="btn_plantilla"
+                                            type="button"
+                                            class="inputButtonCss"
+                                            value="Descargar plantilla"
+                                            onclick="envmasDescargarPlantilla();" />
+                                    </div>
 
-                        <tr id="adjunto_label">
-                            <td class="envmas-label">Adjunto</td>
-                            <td></td>
-                        </tr>
+                                    <div class="envmas-file-upload-wrap" id="adjunto">
+                                        <input type="file" name="file_a0" id="file_a0" />
+                                        <input type="hidden" name="id_ds" value="<?php echo $id_ds ?>" />
 
-                        <tr id="adjunto">
-                            <td class="envmas-label">Archivo</td>
-                            <td>
-                                <table cellspacing="1" cellpadding="2" id="tb_mas_arch">
-                                    <tr>
-                                        <th>&nbsp;</th>
-                                        <th>
-                                            <input type="file" name="file_a0" id="file_a0" />
-                                            <input type="hidden" name="id_ds" value="<?php echo $id_ds ?>" />
-                                            <input type="button" id="btn_mas_arch" name="btn_mas_arch" value="+"
-                                                title="Ingresar un nuevo archivo" class="inputButtonCss"
-                                                onclick="xajax_add_mas_arch()" />
-                                        </th>
-                                    </tr>
-                                </table>
+                                        <input
+                                            type="button"
+                                            id="btn_mas_arch"
+                                            name="btn_mas_arch"
+                                            value="+"
+                                            title="Ingresar un nuevo archivo"
+                                            class="inputButtonCss"
+                                            onclick="xajax_add_mas_arch()" />
+                                    </div>
+                                </div>
+
+                                <div class="envmas-file-table-wrap">
+                                    <table cellspacing="1" cellpadding="2" id="tb_mas_arch">
+                                        <tr>
+                                            <th style="width:30px;">&nbsp;</th>
+                                            <th>Archivo adjunto</th>
+                                        </tr>
+                                    </table>
+                                </div>
                             </td>
                         </tr>
                     </table>
@@ -1817,7 +2164,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                     <div class="envmas-actions">
                         <input type="button" id="btn_finalizar" class="inputButtonCss" value="Finalizar" onclick="envmasFinalizar(this);" />
                         <input type="button" id="btn_continuar_tarde" style="display:none" name="btnlist_dest"
-                            value="Continuar más tarde" class="inputButtonCss"
+                            value="Continuar m&aacute;s tarde" class="inputButtonCss"
                             onclick="envmasGuardarBorrador(this);" />
                     </div>
                 </div>
@@ -1828,7 +2175,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                 <div class="envmas-modal-espera-box">
                     <div class="envmas-modal-espera-loader"></div>
                     <div class="envmas-modal-espera-title">Espere...</div>
-                    <div class="envmas-modal-espera-text">Procesando la información del documento.</div>
+                    <div class="envmas-modal-espera-text">Procesando la informaci&oacute;n del documento.</div>
                 </div>
             </div>
 
@@ -1849,36 +2196,43 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
     ob_start();
     ?>
-    (function(){
+    (function () {
 
-    window.get = window.get || function(id){ return document.getElementById(id); };
+    window.get = window.get || function (id) {
+    return document.getElementById(id);
+    };
 
-    window.mostrar = window.mostrar || function(id){
+    window.mostrar = window.mostrar || function (id) {
     var el = get(id);
-    if(el){
+    if (el) {
+    if (el.tagName && el.tagName.toLowerCase() === 'tr') {
+    el.style.display = 'table-row';
+    } else {
     el.style.display = '';
+    }
     el.hidden = false;
     }
     };
 
-    window.ocultar = window.ocultar || function(id){
+    window.ocultar = window.ocultar || function (id) {
     var el = get(id);
-    if(el){
+    if (el) {
     el.style.display = 'none';
+    el.hidden = true;
     }
     };
 
-    window.envmasExiste = function(id){
+    window.envmasExiste = function (id) {
     return !!get(id);
     };
 
-    window.envmasMostrarEspera = function(texto){
+    window.envmasMostrarEspera = function (texto) {
     var modal = get('envmas_modal_espera');
-    if(modal){
+    if (modal) {
     var textos = modal.getElementsByTagName('div');
-    for(var i = 0; i < textos.length; i++){
-        if(textos[i].className && textos[i].className.indexOf('envmas-modal-espera-text') !==-1){
-        if(texto){
+    for (var i = 0; i < textos.length; i++) {
+        if (textos[i].className && textos[i].className.indexOf('envmas-modal-espera-text') !==-1) {
+        if (texto) {
         textos[i].innerHTML=texto;
         }
         break;
@@ -1888,43 +2242,139 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         }
         };
 
-        window.envmasOcultarEspera=function(){
+        window.envmasOcultarEspera=function () {
         var modal=get('envmas_modal_espera');
-        if(modal){
+        if (modal) {
         modal.style.display='none' ;
         }
         };
 
-        window.envmasBloquearBotones=function(){
-        try{
-        if(get('btn_finalizar')) get('btn_finalizar').disabled=true;
-        if(get('btn_continuar_tarde')) get('btn_continuar_tarde').disabled=true;
-        if(get('gen_rad_btn')) get('gen_rad_btn').disabled=true;
-        if(get('btn_plantilla')) get('btn_plantilla').disabled=true;
-        }catch(e){}
-        };
-
-        window.envmasDesbloquearBotones=function(){
-        try{
-        if(get('btn_finalizar')) get('btn_finalizar').disabled=false;
-        if(get('btn_continuar_tarde')) get('btn_continuar_tarde').disabled=false;
-        if(get('gen_rad_btn')) get('gen_rad_btn').disabled=false;
-        if(get('btn_plantilla')) get('btn_plantilla').disabled=(get('rad_g') && get('rad_g').value !=='s' );
-        }catch(e){}
-        };
-
-        window.envmasResetNotaInterna=function(){
-        try{
-        if (typeof CKEDITOR !=='undefined' && CKEDITOR.instances) {
-        for (var instancia in CKEDITOR.instances) {
-        if (CKEDITOR.instances.hasOwnProperty(instancia)) {
+        window.envmasBloquearBotones=function () {
         try {
-        CKEDITOR.instances[instancia].destroy(true);
-        } catch(err){}
+        if (get('btn_finalizar')) get('btn_finalizar').disabled=true;
+        if (get('btn_continuar_tarde')) get('btn_continuar_tarde').disabled=true;
+        if (get('gen_rad_btn')) get('gen_rad_btn').disabled=true;
+        if (get('btn_plantilla')) get('btn_plantilla').disabled=true;
+        } catch (e) {}
+        };
+
+        window.envmasDesbloquearBotones=function () {
+        try {
+        if (get('btn_finalizar')) get('btn_finalizar').disabled=false;
+        if (get('btn_continuar_tarde')) get('btn_continuar_tarde').disabled=false;
+        if (get('gen_rad_btn')) get('gen_rad_btn').disabled=false;
+        if (get('btn_plantilla')) {
+        get('btn_plantilla').disabled=!(get('rad_g') && get('rad_g').value==='s' );
         }
+        } catch (e) {}
+        };
+
+        window.envmasQuill=null;
+
+        window.envmasObtenerMensajeNota=function () {
+        try {
+        if (window.envmasQuill) {
+        return window.envmasQuill.root.innerHTML || '' ;
         }
+        } catch (e) {}
+
+        if (get('area_mensaje')) {
+        return get('area_mensaje').value || '' ;
         }
-        }catch(e){}
+
+        return '' ;
+        };
+
+        window.envmasCrearEditorNotaInterna=function () {
+        if (!get('div_mensaje')) return;
+
+        var contenidoInicial='' ;
+        if (get('area_mensaje') && get('area_mensaje').value) {
+        contenidoInicial=get('area_mensaje').value;
+        }
+        get('div_mensaje').innerHTML=''
+        + '<div class="envmas-note-box">'
+        + '   <div id="toolbar_mensaje" class="envmas-editor-toolbar">'
+        + '       <span class="ql-formats">'
+        + '           <select class="ql-font"></select>'
+        + '           <select class="ql-size"></select>'
+        + '       </span>'
+        + '       <span class="ql-formats">'
+        + '           <select class="ql-header">'
+        + '               <option value="1"></option>'
+        + '               <option value="2"></option>'
+        + '               <option selected></option>'
+        + '           </select>'
+        + '       </span>'
+        + '       <span class="ql-formats">'
+        + '           <button class="ql-bold"></button>'
+        + '           <button class="ql-italic"></button>'
+        + '           <button class="ql-underline"></button>'
+        + '           <button class="ql-strike"></button>'
+        + '       </span>'
+        + '       <span class="ql-formats">'
+        + '           <button class="ql-blockquote"></button>'
+        + '           <button class="ql-code-block"></button>'
+        + '       </span>'
+        + '       <span class="ql-formats">'
+        + '           <button class="ql-list" value="ordered"></button>'
+        + '           <button class="ql-list" value="bullet"></button>'
+        + '           <button class="ql-indent" value="-1"></button>'
+        + '           <button class="ql-indent" value="+1"></button>'
+        + '       </span>'
+        + '       <span class="ql-formats">'
+        + '           <select class="ql-align"></select>'
+        + '       </span>'
+        + '       <span class="ql-formats">'
+        + '           <select class="ql-color"></select>'
+        + '           <select class="ql-background"></select>'
+        + '       </span>'
+        + '       <span class="ql-formats">'
+        + '           <button class="ql-link"></button>'
+        + '           <button class="ql-image"></button>'
+        + '           <button class="ql-video"></button>'
+        + '       </span>'
+        + '       <span class="ql-formats">'
+        + '           <button class="ql-clean"></button>'
+        + '       </span>'
+        + '   </div>'
+        + '   <div id="mensaje_editor" class="envmas-editor-content"></div>'
+        + '</div>' ;
+
+        setTimeout(function () {
+        try {
+        if (typeof Quill==='undefined' ) {
+        console.error('Quill no está cargado');
+        return;
+        }
+
+        window.envmasQuill=new Quill('#mensaje_editor', {
+        theme: 'snow' ,
+        placeholder: '' ,
+        modules: {
+        toolbar: '#toolbar_mensaje'
+        }
+        });
+
+        if (get('area_mensaje')) {
+        get('area_mensaje').value=window.envmasQuill.root.innerHTML;
+        }
+
+        window.envmasQuill.on('text-change', function () {
+        if (get('area_mensaje')) {
+        get('area_mensaje').value=window.envmasQuill.root.innerHTML;
+        }
+        });
+        } catch (e) {
+        console.error(e);
+        }
+        }, 150);
+        };
+
+        window.envmasResetNotaInterna=function () {
+        try {
+        window.envmasQuill=null;
+        } catch (e) {}
 
         if (get('div_mensaje')) {
         get('div_mensaje').innerHTML='' ;
@@ -1937,36 +2387,33 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         ocultar('filmsn');
         };
 
-        window.envmasLimpiarCamposDependientes=function(){
-        if(get('myInput')) get('myInput').value='' ;
-        if(get('myInput5')) get('myInput5').value='' ;
-        if(get('myInputCedula')) get('myInputCedula').value='' ;
-        if(get('myInputCedula5')) get('myInputCedula5').value='' ;
-        if(get('myInputTipo5')) get('myInputTipo5').value='' ;
-        if(get('id_fun2')) get('id_fun2').value='' ;
-        if(get('ct_des')) get('ct_des').value='' ;
-        if(get('radicados_all')) get('radicados_all').innerHTML='' ;
-        if(get('radicados_single')) get('radicados_single').innerHTML='' ;
-        if(get('destinatarios')) get('destinatarios').innerHTML='' ;
-        if(get('rad_g')) get('rad_g').value='n' ;
+        window.envmasLimpiarCamposDependientes=function () {
+        if (get('myInput')) get('myInput').value='' ;
+        if (get('myInput5')) get('myInput5').value='' ;
+        if (get('myInputCedula')) get('myInputCedula').value='' ;
+        if (get('myInputCedula5')) get('myInputCedula5').value='' ;
+        if (get('myInputTipo5')) get('myInputTipo5').value='' ;
+        if (get('id_fun2')) get('id_fun2').value='' ;
+        if (get('ct_des')) get('ct_des').value='' ;
+        if (get('radicados_all')) get('radicados_all').innerHTML='' ;
+        if (get('radicados_single')) get('radicados_single').innerHTML='' ;
+        if (get('destinatarios')) get('destinatarios').innerHTML='' ;
+        if (get('rad_g')) get('rad_g').value='n' ;
         };
 
-        window.envmasCambiarTipoDocumento=function(tipo){
+        window.envmasCambiarTipoDocumento=function (tipo) {
         envmasLimpiarCamposDependientes();
-
-        // Limpiar editor si venimos de nota interna
         envmasResetNotaInterna();
 
         if (tipo==='i' ) {
         mostrar('interno');
         ocultar('externo');
 
-        mostrar('adjunto_label');
         mostrar('adjunto');
         mostrar('des_anex');
         mostrar('tr_folio');
         mostrar('nota_titulo');
-        mostrar('plantilla');
+        mostrar('plantilla_adjunto_wrap');
         mostrar('gen_rad_btn');
         mostrar('filSerie');
         mostrar('filSubserie');
@@ -1975,6 +2422,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         mostrar('anx_fisico');
         mostrar('rad_sin');
 
+        ocultar('filmsn');
         ocultar('rad_mas');
         ocultar('btn_continuar_tarde');
 
@@ -1983,7 +2431,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         mostrar('div_img');
         mostrar('cc_para_th');
 
-        <?php if (!$opt_env['descripciong']['visible'] || $opt_env['descripciong']['visible'] != 'n') { ?>
+        <?php if (!isset($opt_env['descripciong']['visible']) || $opt_env['descripciong']['visible'] != 'n') { ?>
         mostrar('dg_doc');
         <?php } ?>
 
@@ -1991,12 +2439,12 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         document.getElementsByName('radicado')[1].checked=true;
         }
 
-        if(get('nradicado2')) get('nradicado2').hidden=false;
-        if(get('rad_sin')) get('rad_sin').hidden=false;
-        if(get('rad_mas')) get('rad_mas').hidden=true;
+        if (get('nradicado2')) get('nradicado2').hidden=false;
+        if (get('rad_sin')) get('rad_sin').hidden=false;
+        if (get('rad_mas')) get('rad_mas').hidden=true;
 
         <?php if ($id_ser_sal_int != '' && $id_ser_sal_int != NULL) { ?>
-        if(get('id_ser')) get('id_ser').value='<?php echo $id_ser_sal_int; ?>' ;
+        if (get('id_ser')) get('id_ser').value='<?php echo $id_ser_sal_int; ?>' ;
         xajax_solenv_cargarSerie('', '<?php echo $id_ser_sal_int; ?>' );
         xajax_solenv_cargaSubserie('<?php echo $id_ser_sal_int; ?>');
         <?php } ?>
@@ -2008,12 +2456,11 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         mostrar('externo');
         ocultar('interno');
 
-        mostrar('adjunto_label');
         mostrar('adjunto');
         mostrar('des_anex');
         mostrar('tr_folio');
         mostrar('nota_titulo');
-        mostrar('plantilla');
+        mostrar('plantilla_adjunto_wrap');
         mostrar('gen_rad_btn');
         mostrar('filSerie');
         mostrar('filSubserie');
@@ -2029,7 +2476,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         ocultar('div_img');
         ocultar('cc_para_th');
 
-        <?php if (!$opt_env['descripciong']['visible'] || $opt_env['descripciong']['visible'] != 'n') { ?>
+        <?php if (!isset($opt_env['descripciong']['visible']) || $opt_env['descripciong']['visible'] != 'n') { ?>
         mostrar('dg_doc');
         <?php } ?>
 
@@ -2037,12 +2484,12 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         document.getElementsByName('radicado')[0].checked=true;
         }
 
-        if(get('nradicado2')) get('nradicado2').hidden=true;
-        if(get('rad_sin')) get('rad_sin').hidden=true;
-        if(get('rad_mas')) get('rad_mas').hidden=false;
+        if (get('nradicado2')) get('nradicado2').hidden=true;
+        if (get('rad_sin')) get('rad_sin').hidden=true;
+        if (get('rad_mas')) get('rad_mas').hidden=false;
 
         <?php if ($id_ser_sal_ext != '' && $id_ser_sal_ext != NULL) { ?>
-        if(get('id_ser')) get('id_ser').value='<?php echo $id_ser_sal_ext; ?>' ;
+        if (get('id_ser')) get('id_ser').value='<?php echo $id_ser_sal_ext; ?>' ;
         xajax_solenv_cargaSubserie('<?php echo $id_ser_sal_ext; ?>');
         <?php } ?>
 
@@ -2053,7 +2500,6 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         ocultar('externo');
         mostrar('interno');
 
-        ocultar('adjunto_label');
         ocultar('adjunto');
         ocultar('des_anex');
         ocultar('dg_doc');
@@ -2064,23 +2510,28 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         ocultar('cc_para_th');
         ocultar('anx_fisico');
         ocultar('doc_corr');
+        ocultar('plantilla_adjunto_wrap');
 
         mostrar('filmsn');
         mostrar('btn_continuar_tarde');
         mostrar('titulo_radicado');
         mostrar('rad_sin');
+        mostrar('nota_titulo');
 
-        if(get('nradicado2')) get('nradicado2').hidden=true;
-        if(get('rad_mas')) get('rad_mas').hidden=true;
+        if (get('nradicado2')) get('nradicado2').hidden=true;
+        if (get('rad_mas')) get('rad_mas').hidden=true;
 
         ocultar('filSerie');
         ocultar('filSubserie');
 
+        envmasCrearEditorNotaInterna();
+
+        try {
         xajax_ocultar_campos('nota interna');
-        xajax_cargar_editor();
+        } catch (e) {}
 
         <?php if ($id_ser_nota_int != '' && $id_ser_nota_int != NULL) { ?>
-        if(get('id_ser')) get('id_ser').value='<?php echo $id_ser_nota_int; ?>' ;
+        if (get('id_ser')) get('id_ser').value='<?php echo $id_ser_nota_int; ?>' ;
         xajax_solenv_cargaSubserie('<?php echo $id_ser_nota_int; ?>', '<?php echo $id_sub_ser_nota_int; ?>' );
         <?php } ?>
 
@@ -2090,7 +2541,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         envmasActualizarEstado();
         };
 
-        window.envmasAgregarDestinatario=function(){
+        window.envmasAgregarDestinatario=function () {
         var val='' ;
         var td='i' ;
 
@@ -2126,17 +2577,20 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         xajax_envmas_addDestinatario(td, val);
         }
 
-        if(get('myInput')) get('myInput').value='' ;
-        if(get('myInput5')) get('myInput5').value='' ;
+        if (get('myInput')) get('myInput').value='' ;
+        if (get('myInput5')) get('myInput5').value='' ;
 
-        setTimeout(function(){
+        setTimeout(function () {
         envmasActualizarEstado();
         }, 300);
         };
 
-        window.envmasConstruirListaDestinatarios=function(){
-        var lis0=get('destinatarios').getElementsByTagName('table');
-        get('ct_des').value='' ;
+        window.envmasConstruirListaDestinatarios=function () {
+        var contDest=get('destinatarios');
+        if (!contDest) return '' ;
+
+        var lis0=contDest.getElementsByTagName('table');
+        if (get('ct_des')) get('ct_des').value='' ;
 
         if (lis0 !=null && lis0.length> 0) {
         for (var i7 = 0; i7 < lis0.length; i7++) {
@@ -2146,10 +2600,10 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             }
             }
 
-            return get('destinatarios').innerHTML;
+            return contDest.innerHTML;
             };
 
-            window.envmasValidarFormulario = function(validarMensajeNota){
+            window.envmasValidarFormulario = function (validarMensajeNota) {
             var radiosTipo = document.getElementsByName('tip_doc');
             var radiosTent = document.getElementsByName('tent');
 
@@ -2192,25 +2646,19 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             return false;
             }
 
-            var lis0 = get('destinatarios').getElementsByTagName('table');
+            var contDest = get('destinatarios');
+            var lis0 = contDest ? contDest.getElementsByTagName('table') : [];
             if (lis0 == null || lis0.length === 0) {
             mrcCrearDialogoInfo('La lista de destinatarios está vacía', '');
             return false;
             }
 
             if (validarMensajeNota && radiosTipo[2].checked) {
-            try{
-            if (typeof CKEDITOR !== 'undefined' && CKEDITOR.instances) {
-            for (var instancia in CKEDITOR.instances) {
-            if (CKEDITOR.instances.hasOwnProperty(instancia)) {
-            get('area_mensaje').value = CKEDITOR.instances[instancia].getData();
-            break;
+            if (get('area_mensaje')) {
+            get('area_mensaje').value = envmasObtenerMensajeNota();
             }
-            }
-            }
-            }catch(e){}
 
-            if (get('area_mensaje').value === '') {
+            if (!get('area_mensaje') || get('area_mensaje').value === '' || get('area_mensaje').value === '<p><br></p>') {
             mrcCrearDialogoInfo('No has ingresado un mensaje electrónico', '');
             return false;
             }
@@ -2219,7 +2667,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             return true;
             };
 
-            window.envmasGenerarRadicado = function(){
+            window.envmasGenerarRadicado = function () {
             if (!envmasValidarFormulario(false)) return false;
 
             var radi_unico = 'n';
@@ -2231,7 +2679,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
             xajax_envmas_solicitar(xajax.getFormValues('frm_envmas'), 'n', radi_unico, lista_des);
 
-            get('rad_g').value = 's';
+            if (get('rad_g')) get('rad_g').value = 's';
 
             var ppa = '<?php echo $ppal; ?>';
             if (ppa === 'ppal' && document.getElementsByName('tip_doc')[2].checked === true) {
@@ -2242,7 +2690,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             envmasActualizarEstado();
             };
 
-            window.envmasDescargarPlantilla = function(){
+            window.envmasDescargarPlantilla = function () {
             if (get('rad_g').value !== 's') {
             mrcCrearDialogoInfo('Para descargar una plantilla primero debe generar un radicado', '');
             return false;
@@ -2258,14 +2706,14 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             get('frm_envmas').submit();
             };
 
-            window.envmasFinalizar = function(){
+            window.envmasFinalizar = function () {
             get('accion_nota').value = 'f';
             get('btn_cerr').value = 'n';
 
-            try{
+            try {
             get('titulo_per').value = get('tit_per_').value;
             get('docgenenvi').value = 'envigen';
-            }catch(e){}
+            } catch (e) {}
 
             get('frm_envmas').target = 'ventana';
             get('frm_envmas').enctype = 'multipart/form-data';
@@ -2276,18 +2724,11 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             var radiosTipo = document.getElementsByName('tip_doc');
 
             if (radiosTipo[2].checked) {
-            try{
-            if (typeof CKEDITOR !== 'undefined' && CKEDITOR.instances) {
-            for (var instancia in CKEDITOR.instances) {
-            if (CKEDITOR.instances.hasOwnProperty(instancia)) {
-            get('area_mensaje').value = CKEDITOR.instances[instancia].getData();
-            break;
+            if (get('area_mensaje')) {
+            get('area_mensaje').value = envmasObtenerMensajeNota();
             }
-            }
-            }
-            }catch(e){}
 
-            if (get('area_mensaje').value === '') {
+            if (get('area_mensaje').value === '' || get('area_mensaje').value === '<p><br></p>') {
             mrcCrearDialogoInfo('No has ingresado un mensaje electrónico', '');
             return false;
             }
@@ -2309,13 +2750,17 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             get('frm_envmas').submit();
             };
 
-            window.envmasGuardarBorrador = function(){
+            window.envmasGuardarBorrador = function () {
             get('accion_nota').value = 'c';
             get('frm_envmas').target = 'ventana';
             get('frm_envmas').enctype = 'multipart/form-data';
             get('frm_envmas').action = '../../../build/documentacion/envio_docs/envio_directo.php';
 
             if (!envmasValidarFormulario(true)) return false;
+
+            if (get('area_mensaje')) {
+            get('area_mensaje').value = envmasObtenerMensajeNota();
+            }
 
             envmasMostrarEspera('Guardando borrador...');
             envmasBloquearBotones();
@@ -2340,8 +2785,8 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             xajax_buzon_inicio();
             };
 
-            window.envmasActualizarEstado = function(){
-            try{
+            window.envmasActualizarEstado = function () {
+            try {
             var asuntoOk = get('asu') && get('asu').value.trim() !== '';
             var remitenteOk = get('id_fun1') && get('id_fun1').value.trim() !== '';
             var destinatariosOk = get('destinatarios') && get('destinatarios').getElementsByTagName('table').length > 0;
@@ -2353,14 +2798,14 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             if (get('btn_plantilla')) {
             get('btn_plantilla').disabled = (get('rad_g').value !== 's');
             }
-            }catch(e){}
+            } catch (e) {}
             };
 
-            try{
-            YAHOO.example.BasicRemoteInterno = function() {
+            try {
+            YAHOO.example.BasicRemoteInterno = function () {
             var oDS = new YAHOO.util.XHRDataSource("../../../build/documentacion/envio_docs/traerdatos.php");
             oDS.responseType = YAHOO.util.XHRDataSource.TYPE_JSON;
-            oDS.responseSchema = { resultsList : "datos", fields : ["nombre","id_fun"] };
+            oDS.responseSchema = { resultsList: "datos", fields: ["nombre", "id_fun"] };
             oDS.maxCacheEntries = 5;
 
             var oAC = new YAHOO.widget.AutoComplete("myInput", "myContainer", oDS);
@@ -2368,7 +2813,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             oAC.useShadow = true;
             oAC.queryDelay = .5;
 
-            var myHandler = function(sType, aArgs) {
+            var myHandler = function (sType, aArgs) {
             var myAC = aArgs[0];
             var oData = aArgs[2];
             get("myInputCedula").value = oData[1];
@@ -2377,15 +2822,15 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
             oAC.itemSelectEvent.subscribe(myHandler);
 
-            return {oDS:oDS, oAC:oAC};
+            return { oDS: oDS, oAC: oAC };
             }();
-            }catch(e){ alert(e); }
+            } catch (e) { alert(e); }
 
-            try{
-            YAHOO.example.BasicRemoteRemitente = function() {
+            try {
+            YAHOO.example.BasicRemoteRemitente = function () {
             var oDS2 = new YAHOO.util.XHRDataSource("../../../build/documentacion/envio_docs/traerdatos.php");
             oDS2.responseType = YAHOO.util.XHRDataSource.TYPE_JSON;
-            oDS2.responseSchema = { resultsList : "datos", fields : ["nombre","id_fun"] };
+            oDS2.responseSchema = { resultsList: "datos", fields: ["nombre", "id_fun"] };
             oDS2.maxCacheEntries = 5;
 
             var oAC2 = new YAHOO.widget.AutoComplete("myInput2", "myContainer2", oDS2);
@@ -2393,7 +2838,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             oAC2.useShadow = true;
             oAC2.queryDelay = .5;
 
-            var myHandler2 = function(sType, aArgs) {
+            var myHandler2 = function (sType, aArgs) {
             var myAC = aArgs[0];
             var oData = aArgs[2];
             get("id_fun1").value = oData[1];
@@ -2403,15 +2848,15 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
             oAC2.itemSelectEvent.subscribe(myHandler2);
 
-            return {oDS2:oDS2, oAC2:oAC2};
+            return { oDS2: oDS2, oAC2: oAC2 };
             }();
-            }catch(e){ alert(e); }
+            } catch (e) { alert(e); }
 
-            try{
-            YAHOO.example.BasicRemoteExterno = function() {
+            try {
+            YAHOO.example.BasicRemoteExterno = function () {
             var oDS5 = new YAHOO.util.XHRDataSource("../../../build/documentacion/envio_docs/traerdatos_ext.php");
             oDS5.responseType = YAHOO.util.XHRDataSource.TYPE_JSON;
-            oDS5.responseSchema = { resultsList : "datos", fields : ["nombre","id_fun","tip_des"] };
+            oDS5.responseSchema = { resultsList: "datos", fields: ["nombre", "id_fun", "tip_des"] };
             oDS5.maxCacheEntries = 5;
 
             var oAC5 = new YAHOO.widget.AutoComplete("myInput5", "myContainer5", oDS5);
@@ -2419,7 +2864,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             oAC5.useShadow = true;
             oAC5.queryDelay = .5;
 
-            var myHandler5 = function(sType, aArgs) {
+            var myHandler5 = function (sType, aArgs) {
             var myAC = aArgs[0];
             var oData = aArgs[2];
             get("myInputCedula5").value = oData[1];
@@ -2429,16 +2874,15 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
             oAC5.itemSelectEvent.subscribe(myHandler5);
 
-            return {oDS5:oDS5, oAC5:oAC5};
+            return { oDS5: oDS5, oAC5: oAC5 };
             }();
-            }catch(e){ alert(e); }
+            } catch (e) { alert(e); }
 
             envmasActualizarEstado();
 
             })();
         <?php
         $xres->addScript(ob_get_clean());
-
 
         if ($td_par == 'si') $td_par = 'i';
         if ($td_par == 'se') $td_par = 'e';
