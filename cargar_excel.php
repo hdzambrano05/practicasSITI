@@ -13,19 +13,14 @@ require_once('../../clases/base/alumno.php');
 $con = new MySQLConex();
 $con->abrir("../../Connections/datos_conex.php");
 
+/* ================= FUNCIONES BASE ================= */
 
-/* ================= ERROR VISUAL ================= */
 function errorExcel($msg)
 {
-    echo "
-    <div style='padding:12px;background:#fee2e2;color:#991b1b;
-    border:1px solid #fecaca;border-radius:6px;font-weight:600;margin-bottom:10px;'>
-        $msg
-    </div>";
+    echo "<div style='padding:12px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;font-weight:600;margin-bottom:10px;'>$msg</div>";
     exit;
 }
 
-/* ================= NORMALIZAR ENCABEZADOS ================= */
 function normalizarEncabezadoExcel($texto)
 {
     $texto = trim((string)$texto);
@@ -56,41 +51,24 @@ function normalizarEncabezadoExcel($texto)
     ];
 
     $texto = strtr($texto, $reemplazos);
-
-    // quitar comillas dobles o simples sobrantes
     $texto = str_replace(['"', "'"], '', $texto);
-
-    // normalizar espacios
     $texto = preg_replace('/\s+/', ' ', $texto);
 
     return trim($texto);
 }
 
-function construirMapaEncabezadosNormalizados($mapaBD)
-{
-    $salida = [];
-
-    foreach ($mapaBD as $encabezado => $campoBD) {
-        $salida[normalizarEncabezadoExcel($encabezado)] = $encabezado;
-    }
-
-    return $salida;
-}
-
-/* ================= FORMATEAR VALOR CELDA ================= */
 function obtenerValorCeldaFormateado($hoja, $columna, $fila, $nombreColumna = '')
 {
     $cell = $hoja->getCellByColumnAndRow($columna, $fila);
     $valor = $cell->getValue();
 
-    if ($valor === null) {
-        return '';
-    }
+    if ($valor === null) return '';
 
     if ($nombreColumna === 'Fecha de nacimiento') {
         if ($valor !== '' && is_numeric($valor)) {
             return date('Y-m-d', PHPExcel_Shared_Date::ExcelToPHP($valor));
         }
+
         return trim((string)$valor);
     }
 
@@ -101,7 +79,72 @@ function obtenerValorCeldaFormateado($hoja, $columna, $fila, $nombreColumna = ''
     return trim((string)$valor);
 }
 
+function filaTieneColor($hoja, $fila, $highestCol)
+{
+    for ($c = 0; $c < $highestCol; $c++) {
+        $cell = $hoja->getCellByColumnAndRow($c, $fila);
+        $style = $cell->getStyle();
+
+        $fillType = $style->getFill()->getFillType();
+        $rgb = strtoupper((string)$style->getFill()->getStartColor()->getRGB());
+        $argb = strtoupper((string)$style->getFill()->getStartColor()->getARGB());
+
+        if (
+            $fillType !== PHPExcel_Style_Fill::FILL_NONE &&
+            $fillType !== '' &&
+            $rgb !== '' &&
+            $rgb !== 'FFFFFF' &&
+            $rgb !== '000000' &&
+            $argb !== 'FFFFFFFF' &&
+            $argb !== '00000000'
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function esColumnaAnioExcel($hoja, $columna, $highestRow, $filaInicioDatos, $tieneEncabezado)
+{
+    if ($tieneEncabezado) {
+        $encabezado = trim((string)$hoja->getCellByColumnAndRow($columna, 1)->getValue());
+        $encabezado = normalizarEncabezadoExcel($encabezado);
+
+        $encabezadosAnio = [
+            'ANO ACADEMICO',
+            'AÑO ACADEMICO',
+            'ID_ANO',
+            'ID ANO',
+            'ANO',
+            'AÑO'
+        ];
+
+        if (in_array($encabezado, $encabezadosAnio)) {
+            return true;
+        }
+    }
+
+    $cantidadAnios = 0;
+    $cantidadDatos = 0;
+
+    for ($row = $filaInicioDatos; $row <= min($highestRow, $filaInicioDatos + 5); $row++) {
+        $valor = trim((string)$hoja->getCellByColumnAndRow($columna, $row)->getValue());
+
+        if ($valor !== '') {
+            $cantidadDatos++;
+
+            if (preg_match('/^(19|20)[0-9]{2}$/', $valor)) {
+                $cantidadAnios++;
+            }
+        }
+    }
+
+    return ($cantidadDatos > 0 && $cantidadDatos === $cantidadAnios);
+}
+
 /* ================= VALIDACIONES ================= */
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') errorExcel('Petición inválida');
 if (empty($_FILES['archivo_excel'])) errorExcel('No se recibió el archivo');
 if ($_FILES['archivo_excel']['error'] != 0) errorExcel('Error al subir el archivo');
@@ -113,11 +156,15 @@ if (!isset($_POST['id_ano']) || intval($_POST['id_ano']) <= 0) {
 $id_ano_form = intval($_POST['id_ano']);
 
 $ext = strtolower(pathinfo($_FILES['archivo_excel']['name'], PATHINFO_EXTENSION));
-if ($ext !== 'xls') errorExcel('Solo se permiten archivos .xls');
+
+if ($ext !== 'xls') {
+    errorExcel('Solo se permiten archivos .xls');
+}
 
 $archivoTmp = $_FILES['archivo_excel']['tmp_name'];
 
-/* ================= OBTENER AÑO LECTIVO ================= */
+/* ================= AÑO LECTIVO ================= */
+
 $sqlAno = "SELECT ano FROM anolectivo WHERE id_ano = $id_ano_form LIMIT 1";
 $resAno = $con->query($sqlAno);
 
@@ -129,6 +176,7 @@ $rowAno  = $resAno->fetch_assoc();
 $ano_txt = $rowAno['ano'];
 
 /* ================= CARGAR EXCEL ================= */
+
 $reader = PHPExcel_IOFactory::createReader('Excel5');
 $excel  = $reader->load($archivoTmp);
 $hoja   = $excel->getActiveSheet();
@@ -137,8 +185,8 @@ $highestRow = $hoja->getHighestRow();
 $highestCol = PHPExcel_Cell::columnIndexFromString($hoja->getHighestColumn());
 
 /* ================= MAPEO ================= */
-$mapaBD = [
 
+$mapaBD = [
     'Número de documento' => 'doc_pre',
     'Tipo de documento' => 'tipo_pre',
     'Fecha de nacimiento' => 'fec_nac',
@@ -185,107 +233,362 @@ $mapaBD = [
     'ProfesiónA' => 'id_pro_a'
 ];
 
-$columnasExcel = array_keys($mapaBD);
-$mapaEncabezadosNormalizados = construirMapaEncabezadosNormalizados($mapaBD);
-$columnasExcelNormalizadas = array_keys($mapaEncabezadosNormalizados);
+$gruposColumnas = [
+    'Información estudiante' => [
+        'Número de documento',
+        'Tipo de documento',
+        'Fecha de nacimiento',
+        'Ciudad de nacimiento',
+        'Año académico',
+        'Sede',
+        'Grado',
+        'Jornada',
+        'Dirección',
+        'Barrio',
+        'Teléfono',
+        'Celular',
+        'E-mail',
+        'Nombres',
+        'Apellidos',
+        'Sexo',
+        'RH',
+        'EPS',
+        'SISBEN',
+        'Colegio anterior'
+    ],
+    'Información papá' => [
+        'DocumentoP',
+        'TipoP',
+        'NombreP',
+        'ApellidoP',
+        'DirecciónP',
+        'TeléfonoP',
+        'ProfesiónP'
+    ],
+    'Información mamá' => [
+        'DocumentoM',
+        'TipoM',
+        'NombreM',
+        'ApellidoM',
+        'DirecciónM',
+        'TeléfonoM',
+        'ProfesiónM'
+    ],
+    'Información acudiente' => [
+        'DocumentoA',
+        'TipoA',
+        'NombreA',
+        'ApellidoA',
+        'DirecciónA',
+        'TeléfonoA',
+        'ProfesiónA'
+    ]
+];
 
-/* ================= BUSCAR ENCABEZADOS ================= */
-$filaEncabezado = null;
-$mapa = [];
+/* ================= DETECTAR ENCABEZADOS ================= */
 
-for ($row = 1; $row <= $highestRow; $row++) {
-    $tmp = [];
+$coincidenciasEncabezado = 0;
 
-    for ($c = 0; $c < $highestCol; $c++) {
-        $valorOriginal = trim((string)$hoja->getCellByColumnAndRow($c, $row)->getValue());
+for ($c = 0; $c < $highestCol; $c++) {
+    $valorPrimeraFila = trim((string)$hoja->getCellByColumnAndRow($c, 1)->getValue());
+    $valorNormalizado = normalizarEncabezadoExcel($valorPrimeraFila);
 
-        if ($valorOriginal === '') {
-            continue;
+    foreach ($mapaBD as $nombreVisible => $campoBD) {
+        if (
+            normalizarEncabezadoExcel($nombreVisible) === $valorNormalizado ||
+            normalizarEncabezadoExcel($campoBD) === $valorNormalizado
+        ) {
+            $coincidenciasEncabezado++;
+            break;
         }
-
-        $valorNormalizado = normalizarEncabezadoExcel($valorOriginal);
-
-        if (isset($mapaEncabezadosNormalizados[$valorNormalizado])) {
-            $encabezadoCanonico = $mapaEncabezadosNormalizados[$valorNormalizado];
-            $tmp[$encabezadoCanonico] = $c;
-        }
-    }
-
-    if (count(array_intersect(array_keys($tmp), $columnasExcel)) >= ceil(count($columnasExcel) * 0.6)) {
-        $filaEncabezado = $row;
-        $mapa = $tmp;
-        break;
     }
 }
 
-if (!$filaEncabezado) errorExcel('No se encontraron encabezados válidos');
+$tieneColorEncabezado = filaTieneColor($hoja, 1, $highestCol);
+$tieneEncabezado = ($coincidenciasEncabezado >= 2 || $tieneColorEncabezado);
+$filaInicioDatos = $tieneEncabezado ? 2 : 1;
 
-/* ================= CSS ================= */
+/* ================= ESTILOS COMPACTOS ================= */
+
 echo "
 <style>
-#tabla_excel_wrapper{
-    max-height:55vh;
-    overflow:auto;
-    border:1px solid #e5e7eb;
+.excel-importador{
+    background:#fff;
+    border:1px solid #cbd5e1;
     border-radius:8px;
+    overflow:hidden;
+    font-family:Arial, sans-serif;
+    font-size:10px;
 }
+
+.excel-top{
+    padding:8px 10px;
+    background:#1e88c8;
+    color:white;
+}
+
+.excel-top h3{
+    margin:0;
+    font-size:12px;
+    font-weight:700;
+}
+
+.excel-top p{
+    margin:2px 0 0;
+    font-size:10px;
+}
+
+.excel-info{
+    display:flex;
+    gap:5px;
+    flex-wrap:wrap;
+    padding:6px 8px;
+    background:#f8fafc;
+    border-bottom:1px solid #dbe3ec;
+}
+
+.excel-pill{
+    padding:3px 7px;
+    border-radius:10px;
+    background:#e0ecff;
+    color:#1e3a8a;
+    font-size:10px;
+    font-weight:700;
+}
+
+.excel-alerta{
+    margin:6px 8px;
+    padding:6px 8px;
+    border-radius:6px;
+    background:#fff7ed;
+    color:#9a3412;
+    border:1px solid #fed7aa;
+    font-size:10px;
+}
+
+#tabla_excel_wrapper{
+    max-height:45vh;
+    overflow:auto;
+    border-top:1px solid #e5e7eb;
+    border-bottom:1px solid #e5e7eb;
+}
+
 #tabla_excel_preview{
     width:max-content;
     border-collapse:collapse;
-    font-size:12px;
+    font-size:10px;
 }
+
 #tabla_excel_preview th,
 #tabla_excel_preview td{
-    min-width:120px;
-    padding:6px;
+    min-width:110px;
+    max-width:150px;
+    padding:4px 5px;
     border:1px solid #e5e7eb;
     white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
 }
+
 #tabla_excel_preview thead th{
     position:sticky;
     top:0;
-    background:#1e3a8a;
-    color:white;
+    background:#f1f5f9;
+    color:#111827;
     z-index:5;
+    vertical-align:top;
 }
-#barra_guardar{
-    position:sticky;
-    bottom:0;
+
+#tabla_excel_preview tbody tr:nth-child(even){
+    background:#f9fafb;
+}
+
+#tabla_excel_preview tbody tr:hover{
+    background:#eff6ff;
+}
+
+.col-label{
+    font-size:9px;
+    color:#1e3a8a;
+    font-weight:700;
+    margin-bottom:2px;
+}
+
+.col-head{
+    font-size:9px;
+    color:#64748b;
+    margin-bottom:3px;
+    height:11px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.selector-mapeo{
+    width:100%;
+    height:24px;
+    border:1px solid #9ec5fe;
+    border-radius:5px;
     background:#fff;
-    padding:12px;
-    border-top:1px solid #e5e7eb;
-    text-align:right;
-    z-index:10;
+    color:#111827;
+    font-size:10px;
+    padding:2px 4px;
+    outline:none;
+    cursor:pointer;
+}
+
+.selector-mapeo:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 2px rgba(37,99,235,.15);
+}
+
+.selector-mapeo option{
+    color:#111827;
+    background:white;
+}
+
+.selector-mapeo option:disabled{
+    color:#9ca3af;
+    background:#f3f4f6;
+}
+
+.celda-anio{
+    background:#ecfdf5 !important;
+    color:#065f46;
+    font-weight:700;
+}
+
+#barra_guardar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+    padding:8px 10px;
+    background:#fff;
+}
+
+#resumen_mapeo{
+    font-size:10px;
+    color:#475569;
+}
+
+#btn_guardar_excel,
+#btn_limpiar_mapeo{
+    padding:5px 12px;
+    border-radius:7px;
+    font-size:10px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+#btn_guardar_excel{
+    background:#2563eb;
+    color:white;
+    border:none;
+}
+
+#btn_guardar_excel:hover{
+    background:#1d4ed8;
+}
+
+#btn_limpiar_mapeo{
+    background:#f1f5f9;
+    color:#334155;
+    border:1px solid #cbd5e1;
+}
+
+#btn_limpiar_mapeo:hover{
+    background:#e2e8f0;
 }
 </style>
 ";
 
-/* ================= TITULO AÑO ================= */
+/* ================= VISTA ================= */
+
 echo "
-<div style='margin-bottom:10px;font-weight:600;color:#1e3a8a'>
-    Año lectivo seleccionado: <b>" . htmlspecialchars($ano_txt) . "</b>
-</div>
+<div class='excel-importador'>
+    <div class='excel-top'>
+        <h3>Vista previa y mapeo de columnas</h3>
+        <p>Seleccione qué campo corresponde a cada columna antes de guardar los registros.</p>
+    </div>
+
+    <div class='excel-info'>
+        <div class='excel-pill'>Año lectivo: " . htmlspecialchars($ano_txt) . "</div>
+        <div class='excel-pill'>Columnas detectadas: " . intval($highestCol) . "</div>
+        <div class='excel-pill'>Filas del archivo: " . intval($highestRow) . "</div>
+    </div>
 ";
 
-/* ================= TABLA ================= */
-echo "<div id='tabla_excel_wrapper'><table id='tabla_excel_preview'><thead><tr>";
-foreach ($columnasExcel as $c) {
-    echo "<th>" . htmlspecialchars($c) . "</th>";
+if (!$tieneEncabezado) {
+    echo "
+    <div class='excel-alerta'>
+        No se detectaron encabezados válidos. La primera fila se tomará como dato y debe mapear las columnas manualmente.
+    </div>";
 }
+
+echo "<div id='tabla_excel_wrapper'><table id='tabla_excel_preview'><thead><tr>";
+
+/* ================= CABECERA CON SELECTORES ================= */
+
+for ($c = 0; $c < $highestCol; $c++) {
+
+    $letra = PHPExcel_Cell::stringFromColumnIndex($c);
+
+    $valorEncabezado = $tieneEncabezado
+        ? trim((string)$hoja->getCellByColumnAndRow($c, 1)->getValue())
+        : '';
+
+    $valorEncabezadoNormalizado = normalizarEncabezadoExcel($valorEncabezado);
+
+    echo "
+    <th>
+        <div class='col-label'>Columna $letra</div>
+        <div class='col-head'>" . htmlspecialchars($tieneEncabezado ? $valorEncabezado : 'Sin encabezado') . "</div>
+
+        <select class='selector-mapeo' data-columna='$c'>
+            <option value=''>No usar</option>";
+
+    foreach ($gruposColumnas as $grupo => $campos) {
+        echo "<optgroup label='" . htmlspecialchars($grupo) . "'>";
+
+        foreach ($campos as $nombreVisible) {
+            if (!isset($mapaBD[$nombreVisible])) continue;
+
+            $campoBD = $mapaBD[$nombreVisible];
+            $selected = '';
+
+            if (
+                $tieneEncabezado &&
+                (
+                    normalizarEncabezadoExcel($nombreVisible) === $valorEncabezadoNormalizado ||
+                    normalizarEncabezadoExcel($campoBD) === $valorEncabezadoNormalizado
+                )
+            ) {
+                $selected = 'selected';
+            }
+
+            echo "<option value='" . htmlspecialchars($campoBD) . "' $selected>" .
+                htmlspecialchars($nombreVisible) .
+                "</option>";
+        }
+
+        echo "</optgroup>";
+    }
+
+    echo "
+        </select>
+    </th>";
+}
+
 echo "</tr></thead><tbody>";
 
-for ($row = $filaEncabezado + 1; $row <= $highestRow; $row++) {
+/* ================= DATOS ================= */
+
+for ($row = $filaInicioDatos; $row <= $highestRow; $row++) {
 
     $tieneDatos = false;
 
-    foreach ($columnasExcel as $c) {
-        if ($c === 'Año académico') continue;
-
-        $v = '';
-
-        if (isset($mapa[$c])) {
-            $v = obtenerValorCeldaFormateado($hoja, $mapa[$c], $row, $c);
-        }
+    for ($c = 0; $c < $highestCol; $c++) {
+        $v = obtenerValorCeldaFormateado($hoja, $c, $row);
 
         if ($v !== '') {
             $tieneDatos = true;
@@ -297,17 +600,17 @@ for ($row = $filaEncabezado + 1; $row <= $highestRow; $row++) {
 
     echo "<tr>";
 
-    foreach ($columnasExcel as $c) {
+    for ($c = 0; $c < $highestCol; $c++) {
 
-        if ($c === 'Año académico') {
-            $v = $ano_txt;
-        } else {
-            $v = isset($mapa[$c])
-                ? obtenerValorCeldaFormateado($hoja, $mapa[$c], $row, $c)
-                : '';
-        }
+        $esAnio = esColumnaAnioExcel($hoja, $c, $highestRow, $filaInicioDatos, $tieneEncabezado);
 
-        echo "<td>" . htmlspecialchars($v) . "</td>";
+        $v = $esAnio
+            ? $ano_txt
+            : obtenerValorCeldaFormateado($hoja, $c, $row);
+
+        $clase = $esAnio ? " class='celda-anio'" : "";
+
+        echo "<td data-columna='$c'$clase>" . htmlspecialchars($v) . "</td>";
     }
 
     echo "</tr>";
@@ -315,41 +618,185 @@ for ($row = $filaEncabezado + 1; $row <= $highestRow; $row++) {
 
 echo "</tbody></table></div>";
 
-/* ================= BOTÓN ================= */
 echo "
-<div id='barra_guardar'>
-    <button id='btn_guardar_excel'
-        style='padding:10px 22px;background:#2563eb;color:white;
-        border:none;border-radius:8px;font-weight:600;cursor:pointer'>
-        Guardar Excel
-    </button>
+    <div id='barra_guardar'>
+        <div id='resumen_mapeo'>Columnas seleccionadas: <b id='total_mapeadas'>0</b></div>
+
+        <div>
+            <button id='btn_limpiar_mapeo' type='button'>Limpiar mapeo</button>
+            <button id='btn_guardar_excel' type='button'>Guardar Excel</button>
+        </div>
+    </div>
 </div>
 ";
 
 /* ================= SCRIPT ================= */
+
 echo "
 <script>
-var mapaBD = " . json_encode($mapaBD) . ";
+var ANO_TXT = " . json_encode($ano_txt) . ";
+var ID_ANO_FORM = " . intval($id_ano_form) . ";
 
-$(document).off('click','#btn_guardar_excel').on('click','#btn_guardar_excel',function(){
+function actualizarResumenMapeo(){
+    var total = 0;
 
-    if(!confirm('¿Desea guardar los registros del Excel?')) return;
+    $('.selector-mapeo').each(function(){
+        if($(this).val() !== ''){
+            total++;
+        }
+    });
+
+    $('#total_mapeadas').text(total);
+}
+
+function actualizarOpcionesMapeo(){
+
+    var usados = [];
+
+    $('.selector-mapeo').each(function(){
+        var valor = $(this).val();
+
+        if(valor !== ''){
+            usados.push(valor);
+        }
+    });
+
+    $('.selector-mapeo').each(function(){
+
+        var selectActual = $(this);
+        var valorActual = selectActual.val();
+
+        selectActual.find('option').each(function(){
+
+            var opcion = $(this);
+            var valorOpcion = opcion.val();
+
+            if(valorOpcion === ''){
+                opcion.prop('disabled', false);
+                return;
+            }
+
+            var usadoEnOtraColumna = usados.indexOf(valorOpcion) !== -1 && valorOpcion !== valorActual;
+            opcion.prop('disabled', usadoEnOtraColumna);
+        });
+    });
+
+    actualizarResumenMapeo();
+}
+
+function actualizarVisualizacionAnio(){
+
+    $('#tabla_excel_preview thead th').each(function(i){
+
+        var campoBD = $(this).find('select').val();
+        var textoHeader = $(this).find('.col-head').text().trim().toLowerCase();
+
+        var esAnio = (
+            campoBD === 'id_ano' ||
+            textoHeader === 'id_ano' ||
+            textoHeader === 'año académico' ||
+            textoHeader === 'ano academico' ||
+            textoHeader === 'año' ||
+            textoHeader === 'ano'
+        );
+
+        if(!esAnio){
+            var totalDatos = 0;
+            var totalAnios = 0;
+
+            $('#tabla_excel_preview tbody tr').each(function(){
+                var valor = $(this).find('td').eq(i).text().trim();
+
+                if(valor !== ''){
+                    totalDatos++;
+
+                    if(/^(19|20)[0-9]{2}$/.test(valor)){
+                        totalAnios++;
+                    }
+                }
+            });
+
+            esAnio = totalDatos > 0 && totalDatos === totalAnios;
+        }
+
+        $('#tabla_excel_preview tbody tr').each(function(){
+            var celda = $(this).find('td').eq(i);
+
+            if(esAnio){
+                celda.text(ANO_TXT);
+                celda.addClass('celda-anio');
+            }else{
+                celda.removeClass('celda-anio');
+            }
+        });
+    });
+}
+
+function obtenerDatosTabla(){
 
     var datos = [];
 
     $('#tabla_excel_preview tbody tr').each(function(){
+
         var fila = {};
 
         $(this).find('td').each(function(i){
-            var col = $('#tabla_excel_preview thead th').eq(i).text().trim();
-            fila[ mapaBD[col] || col ] = $(this).text().trim();
+
+            var campoBD = $('#tabla_excel_preview thead th').eq(i).find('select').val();
+
+            if(!campoBD) return;
+
+            if(campoBD === 'id_ano'){
+                fila.id_ano = ID_ANO_FORM;
+            }else{
+                fila[campoBD] = $(this).text().trim();
+            }
         });
 
-        datos.push(fila);
+        fila.id_ano = ID_ANO_FORM;
+
+        if(Object.keys(fila).length > 1){
+            datos.push(fila);
+        }
     });
 
-    console.log('Datos enviados:', datos);
-    xajax_guardarExcelPreinscritosNuevo(datos);
+    return datos;
+}
+
+$(function(){
+
+    actualizarOpcionesMapeo();
+    actualizarVisualizacionAnio();
+
+    $(document).off('change.excelNuevo', '.selector-mapeo')
+        .on('change.excelNuevo', '.selector-mapeo', function(){
+            actualizarOpcionesMapeo();
+            actualizarVisualizacionAnio();
+        });
+
+    $(document).off('click.excelNuevo', '#btn_limpiar_mapeo')
+        .on('click.excelNuevo', '#btn_limpiar_mapeo', function(){
+            $('.selector-mapeo').val('');
+            actualizarOpcionesMapeo();
+            actualizarVisualizacionAnio();
+        });
+
+    $(document).off('click.excelNuevo', '#btn_guardar_excel')
+        .on('click.excelNuevo', '#btn_guardar_excel', function(){
+
+            var datos = obtenerDatosTabla();
+
+            if(datos.length === 0){
+                alert('Debe seleccionar al menos una columna para guardar.');
+                return;
+            }
+
+            if(!confirm('¿Desea guardar los registros del Excel?')) return;
+
+            console.log('Datos enviados:', datos);
+
+            xajax_guardarExcelPreinscritosNuevo(datos);
+        });
 });
 </script>
 ";
