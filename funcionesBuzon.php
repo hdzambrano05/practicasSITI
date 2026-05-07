@@ -588,11 +588,32 @@ function getListaDocumentos_nuevo($par)
             }
         }
 
+        // Mostrar Responder solo en Recibidos
+        $mostrarResponder = false;
+
+        // SOLO mostrar responder en RECIBIDOS
         if (
-            ($row['tip_doc'] == 'si' || $row['tip_doc'] == 'ss' || $row['tip_doc'] == 'se') &&
-            ($_SESSION['id_fun'] == $id_rem || $_SESSION['id_fun'] == $id_ori)
+            isset($par['accion']) &&
+            $par['accion'] == 'R' &&
+            ($row['tip_doc'] == 'si' || $row['tip_doc'] == 'ss' || $row['tip_doc'] == 'se')
         ) {
-            $mostrarResponder = true;
+
+            // 👇 SOLO si ya NO está en estado de confirmar
+            $tieneConfirmar = false;
+
+            if (!empty($estados)) {
+                foreach ($estados as $paso) {
+                    if ($paso == 6) {
+                        $tieneConfirmar = true;
+                        break;
+                    }
+                }
+            }
+
+            // 👉 SOLO si ya confirmó
+            if (!$tieneConfirmar) {
+                $mostrarResponder = true;
+            }
         }
     ?>
         <tr class="<?php echo $claseFila; ?>">
@@ -747,7 +768,13 @@ function getListaDocumentos_nuevo($par)
                             data-bs-custom-class="tooltip-buzon"
                             title="Responder"
                             aria-label="Responder"
-                            onclick="try{ parent.xajax_envmas_inicio('<?php echo $row['id_doc']; ?>','<?php echo $row['tip_doc']; ?>'); }catch(e){alert(e);}">
+                            onclick='try{
+                                            parent.xajax_envmas_inicio(
+                                                "<?php echo $row['id_doc']; ?>",
+                                                "<?php echo $row['tip_doc']; ?>",
+                                                "{\"id_doc\":\"<?php echo $row['id_doc']; ?>\",\"tip_doc\":\"<?php echo $row['tip_doc']; ?>\",\"cod\":\"<?php echo addslashes($row['cod']); ?>\"}"
+                                            );
+                                        }catch(e){alert(e);}'>
                             <i class="bi bi-reply-fill"></i>
                         </button>
                     <?php
@@ -784,10 +811,18 @@ function getListaDocumentos_nuevo($par)
         $totalPaginas = 1;
     }
 
-    $paginaActual = isset($par['startIndex']) ? (int)$par['startIndex'] : 1;
+    $startIndexActual = isset($par['startIndex']) ? (int)$par['startIndex'] : 1;
+
+    if ($startIndexActual < 1) {
+        $startIndexActual = 1;
+    }
+
+    $paginaActual = (int)ceil($startIndexActual / $par['pageSize']);
+
     if ($paginaActual < 1) {
         $paginaActual = 1;
     }
+
     if ($paginaActual > $totalPaginas) {
         $paginaActual = $totalPaginas;
     }
@@ -818,7 +853,7 @@ function getListaDocumentos_nuevo($par)
                     <span
                         class="page-link"
                         onclick='
-                        get("startIndex").value=<?php echo $paginaActual - 1; ?>;
+                        get("startIndex").value=<?php echo (($paginaActual - 2) * $par['pageSize']) + 1; ?>;
                         get("paginadorBuzon").innerHTML="";
                         if(typeof mostrarCargandoBuzon === "function"){
                             mostrarCargandoBuzon("Cargando documentos...");
@@ -841,7 +876,7 @@ function getListaDocumentos_nuevo($par)
                     <span
                         class="page-link"
                         onclick='
-                        get("startIndex").value=<?php echo $i; ?>;
+                        get("startIndex").value=<?php echo (($i - 1) * $par['pageSize']) + 1; ?>;
                         get("paginadorBuzon").innerHTML="";
                         if(typeof mostrarCargandoBuzon === "function"){
                             mostrarCargandoBuzon("Cargando documentos...");
@@ -864,7 +899,7 @@ function getListaDocumentos_nuevo($par)
                     <span
                         class="page-link"
                         onclick='
-                        get("startIndex").value=<?php echo $paginaActual + 1; ?>;
+                        get("startIndex").value=<?php echo ($paginaActual * $par['pageSize']) + 1; ?>;
                         get("paginadorBuzon").innerHTML="";
                         if(typeof mostrarCargandoBuzon === "function"){
                             mostrarCargandoBuzon("Cargando documentos...");
@@ -879,7 +914,7 @@ function getListaDocumentos_nuevo($par)
                     <span
                         class="page-link"
                         onclick='
-                        get("startIndex").value=<?php echo $totalPaginas; ?>;
+                        get("startIndex").value=<?php echo (($totalPaginas - 1) * $par['pageSize']) + 1; ?>;
                         get("paginadorBuzon").innerHTML="";
                         if(typeof mostrarCargandoBuzon === "function"){
                             mostrarCargandoBuzon("Cargando documentos...");
@@ -1158,6 +1193,8 @@ function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $p
     $rutaWeb = '';
     $viewerId = 'gmDocxViewer_' . intval($id_doc) . '_' . mt_rand(1000, 9999);
 
+    $archivosZip = array();
+
     if ($arch != '') {
         $zip = new ZipArchive();
         $var_cons = $arch;
@@ -1170,49 +1207,91 @@ function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $p
                 $tmpAbs = realpath(__DIR__ . '/../../tmp');
             }
 
-            $fileInsideIndex = -1;
-            $fileInsideName = '';
-
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $tmpName = $zip->getNameIndex($i);
                 if (!$tmpName) {
                     continue;
                 }
+
                 $tmpExt = strtolower(pathinfo($tmpName, PATHINFO_EXTENSION));
+
                 if (in_array($tmpExt, array('pdf', 'docx', 'doc', 'rtf'))) {
-                    $fileInsideIndex = $i;
-                    $fileInsideName = $tmpName;
-                    break;
-                }
-            }
+                    $contenido = $zip->getFromIndex($i);
 
-            if ($fileInsideIndex >= 0) {
-                $filename_nom = basename($fileInsideName);
-                $extension = strtolower(pathinfo($filename_nom, PATHINFO_EXTENSION));
-
-                if ($extension == 'pdf') {
-                    $icono_dw = "<i class='bi bi-file-earmark-pdf-fill gm-file-pdf'></i>";
-                } elseif ($extension == 'rtf' || $extension == 'docx' || $extension == 'doc') {
-                    $icono_dw = "<i class='bi bi-file-earmark-word-fill gm-file-word'></i>";
-                } else {
-                    $icono_dw = "<i class='bi bi-file-earmark-fill gm-file-generic'></i>";
-                }
-
-                if ($tmpAbs) {
-                    $contenido = $zip->getFromIndex($fileInsideIndex);
-                    if ($contenido !== false) {
-                        $nombreSeguro = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $filename_nom);
+                    if ($contenido !== false && $tmpAbs) {
+                        $nombreSeguro = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', basename($tmpName));
                         $nombreFinal = 'preview_' . $id_doc . '_' . time() . '_' . mt_rand(1000, 9999) . '_' . $nombreSeguro;
                         $rutaAbsFinal = $tmpAbs . DIRECTORY_SEPARATOR . $nombreFinal;
 
                         if (@file_put_contents($rutaAbsFinal, $contenido) !== false) {
-                            $rutaWeb = '../../tmp/' . rawurlencode($nombreFinal);
+                            $archivosZip[] = array(
+                                'nombre' => basename($tmpName),
+                                'extension' => $tmpExt,
+                                'rutaWeb' => '../../tmp/' . rawurlencode($nombreFinal)
+                            );
+                        }
+                    }
+                }
+
+                if ($tmpExt == 'zip') {
+                    $contenidoZipInterno = $zip->getFromIndex($i);
+
+                    if ($contenidoZipInterno !== false && $tmpAbs) {
+                        $nombreZipSeguro = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', basename($tmpName));
+                        $nombreZipTmp = 'zip_interno_' . $id_doc . '_' . time() . '_' . mt_rand(1000, 9999) . '_' . $nombreZipSeguro;
+                        $rutaZipTmp = $tmpAbs . DIRECTORY_SEPARATOR . $nombreZipTmp;
+
+                        if (@file_put_contents($rutaZipTmp, $contenidoZipInterno) !== false) {
+                            $zipInterno = new ZipArchive();
+
+                            if ($zipInterno->open($rutaZipTmp) === true) {
+                                for ($j = 0; $j < $zipInterno->numFiles; $j++) {
+                                    $tmpNameInterno = $zipInterno->getNameIndex($j);
+                                    if (!$tmpNameInterno) {
+                                        continue;
+                                    }
+
+                                    $tmpExtInterno = strtolower(pathinfo($tmpNameInterno, PATHINFO_EXTENSION));
+
+                                    if (in_array($tmpExtInterno, array('pdf', 'docx', 'doc', 'rtf'))) {
+                                        $contenidoInterno = $zipInterno->getFromIndex($j);
+
+                                        if ($contenidoInterno !== false && $tmpAbs) {
+                                            $nombreSeguro = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', basename($tmpNameInterno));
+                                            $nombreFinal = 'preview_inner_' . $id_doc . '_' . time() . '_' . mt_rand(1000, 9999) . '_' . $nombreSeguro;
+                                            $rutaAbsFinal = $tmpAbs . DIRECTORY_SEPARATOR . $nombreFinal;
+
+                                            if (@file_put_contents($rutaAbsFinal, $contenidoInterno) !== false) {
+                                                $archivosZip[] = array(
+                                                    'nombre' => basename($tmpNameInterno),
+                                                    'extension' => $tmpExtInterno,
+                                                    'rutaWeb' => '../../tmp/' . rawurlencode($nombreFinal)
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+
+                                $zipInterno->close();
+                            }
                         }
                     }
                 }
             }
 
             $zip->close();
+
+            if (count($archivosZip) > 0) {
+                $filename_nom = $archivosZip[0]['nombre'];
+                $extension = $archivosZip[0]['extension'];
+                $rutaWeb = $archivosZip[0]['rutaWeb'];
+
+                if ($extension == 'pdf') {
+                    $icono_dw = "<i class='bi bi-file-earmark-pdf-fill gm-file-pdf'></i>";
+                } elseif ($extension == 'rtf' || $extension == 'docx' || $extension == 'doc') {
+                    $icono_dw = "<i class='bi bi-file-earmark-word-fill gm-file-word'></i>";
+                }
+            }
         }
     }
 
@@ -1396,20 +1475,49 @@ function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $p
                     <div class="gm-doc-card-head gm-doc-card-head-compact">
                         <h4><i class="bi bi-paperclip"></i> Adjuntos</h4>
 
-                        <?php if ($filename_nom != '' && $extension != '') { ?>
-                            <div class="gm-doc-file-badge">
+                        <div class="gm-doc-download gm-doc-download-bottom">
+                            <a class="gm-doc-download-link"
+                                target="_blank"
+                                href="../../../build/common/files/download_file.php?id_var=16&file=<?php echo urlencode($arch); ?>"
+                                title="Descargar Archivo">
                                 <?php echo $icono_dw; ?>
-                                <span><?php echo htmlspecialchars($filename_nom); ?></span>
-                            </div>
-                        <?php } ?>
+                                <span>Descargar archivo</span>
+                            </a>
+                        </div>
                     </div>
+
+                    <?php if (isset($archivosZip) && count($archivosZip) > 0) { ?>
+                        <div style="margin-bottom:12px; display:flex; flex-direction:column; gap:6px;">
+                            <?php foreach ($archivosZip as $idx => $docZip) { ?>
+
+                                <?php
+                                $iconoLista = "<i class='bi bi-file-earmark-fill gm-file-generic'></i>";
+
+                                if ($docZip['extension'] == 'pdf') {
+                                    $iconoLista = "<i class='bi bi-file-earmark-pdf-fill gm-file-pdf'></i>";
+                                } elseif ($docZip['extension'] == 'docx' || $docZip['extension'] == 'doc' || $docZip['extension'] == 'rtf') {
+                                    $iconoLista = "<i class='bi bi-file-earmark-word-fill gm-file-word'></i>";
+                                }
+                                ?>
+
+                                <button type="button"
+                                    class="gm-doc-download-link"
+                                    style="border:0; cursor:pointer; text-align:left;"
+                                    onclick="gmAbrirDocZip('<?php echo $docZip['rutaWeb']; ?>','<?php echo $docZip['extension']; ?>','gmDocPreviewZip_<?php echo $id_doc; ?>')">
+                                    <?php echo $iconoLista; ?>
+                                    <span><?php echo htmlspecialchars($docZip['nombre']); ?></span>
+                                </button>
+
+                            <?php } ?>
+                        </div>
+                    <?php } ?>
 
                     <div class="gm-doc-adjunto-box">
                         <?php
                         if ($arch != '') {
                             if ($filename_nom != '' && $rutaWeb != '') {
                         ?>
-                                <div class="gm-doc-preview">
+                                <div id="gmDocPreviewZip_<?php echo $id_doc; ?>" class="gm-doc-preview">
                                     <?php if ($extension == 'pdf') { ?>
                                         <object class="gm-doc-pdfview" type="application/pdf" data="<?php echo $rutaWeb; ?>">
                                             <div class="gm-doc-empty">
@@ -1436,15 +1544,12 @@ function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $p
                                     <?php } ?>
                                 </div>
 
-                                <div class="gm-doc-download gm-doc-download-bottom">
-                                    <a class="gm-doc-download-link"
-                                        target="_blank"
-                                        href="../../../build/common/files/download_file.php?id_var=16&file=<?php echo urlencode($arch); ?>"
-                                        title="Descargar Archivo">
+                                <?php if ($filename_nom != '' && $extension != '') { ?>
+                                    <div class="gm-doc-file-badge">
                                         <?php echo $icono_dw; ?>
-                                        <span>Descargar archivo</span>
-                                    </a>
-                                </div>
+                                        <span><?php echo htmlspecialchars($filename_nom); ?></span>
+                                    </div>
+                                <?php } ?>
                         <?php
                             } elseif ($filename_nom != '' && $extension != '') {
                                 echo '<div class="gm-doc-empty">El archivo existe, pero no fue posible generar la vista previa.</div>';
@@ -1477,13 +1582,13 @@ function mostrar_modal2_nuevo($id_doc, $tip_doc, $id_edoc = '', $accion = '', $p
 
 if(modalYui){
     modalYui.classList.add('gm-doc-yui-modal');
-    modalYui.style.overflow = 'hidden';   // ✔ correcto
+    modalYui.style.overflow = 'hidden';
     modalYui.style.maxHeight = '85vh';
     modalYui.style.height = '85vh';
 }
     
 if(modalCont){
-    modalCont.style.overflowY = 'auto';   // 🔥 ESTE ES EL FIX
+    modalCont.style.overflowY = 'auto';
     modalCont.style.overflowX = 'hidden';
     modalCont.style.height = '100%';
 }
@@ -1609,6 +1714,121 @@ if(modalCont){
             })();
         ");
     }
+    $xres->addScript("
+window.gmLoadScriptZip = function(src, callback){
+    var existing = document.querySelector('script[src=\"' + src + '\"]');
+    if(existing){
+        if(callback) callback();
+        return;
+    }
+
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = function(){ if(callback) callback(); };
+    document.head.appendChild(s);
+};
+
+window.gmAbrirDocZip = function(ruta, extension, contenedorId){
+    var contenedor = document.getElementById(contenedorId);
+    if(!contenedor){ return; }
+
+    extension = (extension || '').toLowerCase();
+
+    // limpiar completamente visor anterior
+    while(contenedor.firstChild){
+        contenedor.removeChild(contenedor.firstChild);
+    }
+
+    contenedor.scrollTop = 0;
+
+    if(extension === 'pdf'){
+        var obj = document.createElement('object');
+        obj.className = 'gm-doc-pdfview';
+        obj.type = 'application/pdf';
+        obj.data = ruta + '?v=' + Date.now();
+        obj.innerHTML = '<div class=\"gm-doc-empty\">No se pudo mostrar el PDF.</div>';
+        contenedor.appendChild(obj);
+        return;
+    }
+
+    if(extension === 'docx'){
+        var visorId = 'visorDocxZip_' + Date.now() + '_' + Math.floor(Math.random() * 9999);
+
+        var visor = document.createElement('div');
+        visor.id = visorId;
+        visor.className = 'gm-docx-render-area';
+        visor.innerHTML = '<div class=\"gm-doc-empty\">Cargando documento por páginas...</div>';
+
+        contenedor.appendChild(visor);
+
+        window.gmLoadScriptZip('https://unpkg.com/jszip/dist/jszip.min.js', function(){
+            window.gmLoadScriptZip('https://unpkg.com/docx-preview/dist/docx-preview.js', function(){
+                fetch(ruta + '?v=' + Date.now(), { cache: 'no-store' })
+                    .then(function(res){
+                        if(!res.ok){ throw new Error('No se pudo cargar el DOCX'); }
+                        return res.blob();
+                    })
+                    .then(function(blob){
+                        var viewer = document.getElementById(visorId);
+                        if(!viewer){ return; }
+
+                        while(viewer.firstChild){
+                            viewer.removeChild(viewer.firstChild);
+                        }
+
+                        return docx.renderAsync(blob, viewer, null, {
+                            className: 'docx',
+                            inWrapper: true,
+                            breakPages: true,
+                            ignoreWidth: false,
+                            ignoreHeight: false,
+                            ignoreFonts: false,
+                            experimental: true,
+                            useBase64URL: true,
+                            renderHeaders: true,
+                            renderFooters: true,
+                            renderFootnotes: true
+                        });
+                    })
+                    .then(function(){
+                        setTimeout(function(){
+                            var viewer = document.getElementById(visorId);
+                            if(!viewer){ return; }
+
+                            var wrappers = viewer.querySelectorAll('.docx-wrapper');
+
+                            for(var i = 1; i < wrappers.length; i++){
+                                wrappers[i].remove();
+                            }
+
+                            var pages = viewer.querySelectorAll('.docx-wrapper > section.docx');
+
+                            pages.forEach(function(page){
+                                page.style.width = '794px';
+                                page.style.maxWidth = '794px';
+                                page.style.minHeight = '1123px';
+                                page.style.margin = '0 auto';
+                                page.style.padding = '70px 60px';
+                                page.style.boxSizing = 'border-box';
+                                page.style.background = '#fff';
+                                page.style.textAlign = 'left';
+                            });
+                        }, 250);
+                    })
+                    .catch(function(){
+                        contenedor.innerHTML = '<div class=\"gm-doc-empty\">Error al visualizar el archivo DOCX.</div>';
+                    });
+            });
+        });
+
+        return;
+    }
+
+    contenedor.innerHTML =
+        '<div class=\"gm-doc-empty\">Vista previa no disponible para archivos .' + extension + '.</div>';
+};
+");
+
 
     return $xres->getXML();
 }
@@ -1646,6 +1866,41 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
     $fun = funcionario::getWhere($con, $id_fun);
     $nom_fun = $fun[0]->getNom_fun() . ' ' . $fun[0]->getApe_fun() . ' - ' . $fun[0]->getEstructura()->getLabel();
     $n_fun   = $fun[0]->getNom_fun() . ' ' . $fun[0]->getApe_fun();
+
+    $correo_firma = '';
+
+    $sqlCorreoFirma = "
+    SELECT 
+        u.id_usu,
+        u.nom_usu,
+        u.id_fun,
+        fc.usr_fun AS correo
+    FROM usuario u
+    LEFT JOIN funcionariocorreo fc
+        ON u.id_fun = fc.id_fun
+    WHERE u.id_usu = " . (int)$_SESSION['id_usu'] . "
+    LIMIT 1
+";
+
+    $rsCorreoFirma = $con->Execute($sqlCorreoFirma);
+
+    if ($rsCorreoFirma && !$rsCorreoFirma->EOF) {
+        $correo_firma = trim((string)$rsCorreoFirma->fields['correo']);
+    }
+
+
+    $firma_activa = false;
+
+    $sqlFirmaActiva = "SELECT activo FROM firma_active ORDER BY id LIMIT 1";
+    $rsFirmaActiva = $con->Execute($sqlFirmaActiva);
+
+    if ($rsFirmaActiva && !$rsFirmaActiva->EOF) {
+        $valorFirma = $rsFirmaActiva->fields['activo'];
+
+        $valorFirma = strtolower(trim((string)$valorFirma));
+
+        $firma_activa = in_array($valorFirma, array('t', 'true', '1', 's', 'si', 'yes'), true);
+    }
 
     $id_ds = $id_doc_par;
 
@@ -1719,6 +1974,16 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                                                                             if (is_array($res_docp)) echo $res_doc ? $res_docp['id_doc'] : '&nbsp;';
                                                                             else echo '&nbsp;';
                                                                             ?>" />
+            <!--Firma -->
+            <input type="hidden" id="firma_modo" name="firma_modo" value="dibujar" />
+            <input type="hidden" id="firma_data" name="firma_data" value="" />
+            <input type="hidden" id="firma_limpia" name="firma_limpia" value="s" />
+
+            <input type="hidden" id="firma_activa" name="firma_activa" value="<?php echo $firma_activa ? 's' : 'n'; ?>" />
+            <input type="hidden" id="usar_firma_digital" name="usar_firma_digital" value="n" />
+            <input type="hidden" id="firma_nombre" name="firma_nombre" value="<?php echo htmlspecialchars($n_fun, ENT_QUOTES, 'UTF-8'); ?>" />
+            <input type="hidden" id="firma_correo" name="firma_correo" value="<?php echo htmlspecialchars($correo_firma, ENT_QUOTES, 'UTF-8'); ?>" />
+            <input type="hidden" id="firma_ciudad" name="firma_ciudad" value="Pasto" />
 
             <div class="envmas-grid">
 
@@ -1743,7 +2008,13 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                                         </label>
 
                                         <label class="envmas-chip">
-                                            <input name="tip_doc" id="tip_doc_n" type="radio" class="inputRadioCss" value="n" onclick="envmasCambiarTipoDocumento('n')" />
+                                            <input
+                                                name="tip_doc"
+                                                id="tip_doc_n"
+                                                type="radio"
+                                                class="inputRadioCss"
+                                                value="n"
+                                                onclick="try{ envmasCambiarTipoDocumento('n'); }catch(e){ alert(e.message); console.error(e); }" />
                                             Nota Interna
                                         </label>
                                     </div>
@@ -1900,6 +2171,120 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                             </tr>
                         </table>
                     </div>
+                    <div class="envmas-card">
+                        <div class="envmas-title">4. Radicaci&oacute;n</div>
+
+                        <table class="envmas-table">
+                            <tr id="nradicado2" hidden="true">
+                                <td class="envmas-label">Radicado por documento</td>
+                                <td>
+                                    <label style="margin-right:20px;">
+                                        <input name="radicado" type="radio" class="inputRadioCss" value="s"
+                                            onclick="document.getElementById('rad_sin').setAttribute('hidden','true');document.getElementById('rad_mas').removeAttribute('hidden');" />
+                                        S&iacute;
+                                    </label>
+
+                                    <label>
+                                        <input name="radicado" type="radio" class="inputRadioCss" value="n" checked="checked"
+                                            onclick="document.getElementById('rad_mas').setAttribute('hidden','true');document.getElementById('rad_sin').removeAttribute('hidden');" />
+                                        No
+                                    </label>
+                                </td>
+                            </tr>
+
+                            <tr id="anx_fisico">
+                                <td class="envmas-label">Tiene anexos en f&iacute;sico</td>
+                                <td>
+                                    <label style="margin-right:20px;">
+                                        <input name="rfis" type="radio" class="inputRadioCss" value="s" />
+                                        S&iacute;
+                                    </label>
+                                    <label>
+                                        <input name="rfis" type="radio" class="inputRadioCss" value="n" checked="checked" />
+                                        No
+                                    </label>
+                                </td>
+                            </tr>
+
+                            <tr id="doc_corr">
+                                <td class="envmas-label">Entrega unidad de correspondencia</td>
+                                <td>
+                                    <label style="margin-right:20px;">
+                                        <input name="tent" type="radio" class="inputRadioCss" value="d" checked="checked"
+                                            onclick="ocultar('perso'); mostrar('anx_fisico');" />
+                                        S&iacute;
+                                    </label>
+
+                                    <label>
+                                        <input name="tent" type="radio" class="inputRadioCss" value="p"
+                                            onclick="mostrar('perso'); ocultar('anx_fisico'); document.getElementsByName('rfis')[1].checked=true;" />
+                                        No
+                                    </label>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td></td>
+                                <td>
+                                    <div id="perso" class="envmas-box" style="display:none;">
+                                        <p>Si el documento es interno, usted es responsable de la entrega f&iacute;sica y SIGE solo har&aacute; la entrega digital.</p>
+                                        <p>Si el documento es externo, el sistema dejar&aacute; como entregado al destinatario el documento.</p>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr id="nota_titulo">
+                                <td class="envmas-label">Observaciones correspondencia</td>
+                                <td>
+                                    <textarea name="nota_dse" rows="4" class="inputTextCss" id="nota_dse" style="width:500px; height: 10px;"
+                                        onblur="this.value=trim(this.value);"
+                                        onkeypress="<?php echo ($expr['descripcion']); ?>"></textarea>
+                                </td>
+                            </tr>
+
+                            <tr id="titulo_radicado">
+                                <td colspan="2" style="text-align:center;">
+                                    <span class="grupo">Generar radicado</span>
+                                </td>
+                            </tr>
+
+                            <tr id="fila_gen_rad_btn">
+                                <td class="envmas-label">Generar nuevo radicado</td>
+                                <td>
+                                    <input type="button" class="inputButtonCss" value="Generar nuevo radicado" id="gen_rad_btn"
+                                        onclick="envmasGenerarRadicado();" />
+
+                                    <?php if ($ppal == 'ppal') { ?>
+                                        <input type="button" class="inputButtonCss" value="Imprimir sticker" id="imp_stiker_btn"
+                                            title="Imprimir sticker" style="visibility:hidden"
+                                            onclick="var vec_st=get('list_doc').value; xajax_doc_ent_ingDocRec2('',vec_st,'e');" />
+                                    <?php } ?>
+                                </td>
+                            </tr>
+
+                            <tr id="rad_sin">
+                                <td class="envmas-label">N&uacute;mero de radicado</td>
+                                <td><span id="radicados_single" style="font-size:14px;"></span></td>
+                            </tr>
+
+                            <tr id="rad_mas" hidden="true">
+                                <td class="envmas-label">Radicados</td>
+                                <td>
+                                    <div class="envmas-rad-table" id="radicados" style="width:100%; height:85px; overflow:auto;">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Destinatario</th>
+                                                    <th>Radicado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="radicados_all"></tbody>
+                                        </table>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
 
                 </div>
 
@@ -1965,11 +2350,97 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                             </tr>
 
                             <tr id="dg_doc" <?php if ($opt_env['descripciong']['visible'] && $opt_env['descripciong']['visible'] == 'n') echo 'style="display:none;"'; ?>>
-                                <td class="envmas-label">Descripci&oacute;n general</td>
-                                <td>
-                                    <textarea name="obs" rows="3" class="textareaCss" id="obs" style="width:400px;"
-                                        onblur="this.value=trim(this.value);"
-                                        onkeypress="<?php echo ($expr['num_car']); ?>"></textarea>
+
+                                <!-- TÍTULO ARRIBA -->
+                                <td colspan="2" class="envmas-label" style="padding-bottom:5px;">
+                                    Descripci&oacute;n general
+                                </td>
+                            </tr>
+
+                            <tr id="fila_editor_cuerpo">
+                                <!-- EDITOR ABAJO -->
+                                <td colspan="2">
+                                    <div class="envmas-note-box" style="width:100%;">
+
+                                        <div id="toolbar_cuerpo" class="envmas-editor-toolbar">
+
+                                            <span class="ql-formats">
+                                                <select class="ql-font"></select>
+                                                <select class="ql-size">
+                                                    <option value="small"></option>
+                                                    <option selected></option>
+                                                    <option value="large"></option>
+                                                    <option value="huge"></option>
+                                                </select>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <select class="ql-header">
+                                                    <option value="1"></option>
+                                                    <option value="2"></option>
+                                                    <option value="3"></option>
+                                                    <option value="4"></option>
+                                                    <option value="5"></option>
+                                                    <option value="6"></option>
+                                                    <option selected></option>
+                                                </select>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <button class="ql-bold"></button>
+                                                <button class="ql-italic"></button>
+                                                <button class="ql-underline"></button>
+                                                <button class="ql-strike"></button>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <button class="ql-blockquote"></button>
+                                                <button class="ql-code-block"></button>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <button class="ql-list" value="ordered"></button>
+                                                <button class="ql-list" value="bullet"></button>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <button class="ql-script" value="sub"></button>
+                                                <button class="ql-script" value="super"></button>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <button class="ql-indent" value="-1"></button>
+                                                <button class="ql-indent" value="+1"></button>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <select class="ql-align"></select>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <select class="ql-color"></select>
+                                                <select class="ql-background"></select>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <button class="ql-link"></button>
+                                                <button class="ql-image"></button>
+                                                <button class="ql-video"></button>
+                                            </span>
+
+                                            <span class="ql-formats">
+                                                <button class="ql-clean"></button>
+                                            </span>
+
+                                        </div>
+
+                                        <div id="editor_cuerpo" class="envmas-editor-content"
+                                            style="min-height:220px; background:#fff; border:1px solid #ccc;">
+                                        </div>
+                                    </div>
+
+                                    <input type="hidden" name="texto_doc" id="texto_doc">
+                                    <input type="hidden" name="obs" id="obs">
                                 </td>
                             </tr>
 
@@ -1985,12 +2456,18 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
                             <tr>
                                 <td class="envmas-label">Respuesta a documento</td>
                                 <td>
-                                    <input name="es_rta" type="checkbox" id="es_rta" value="s" <?php if (isset($cod) && $cod != '') echo 'checked="checked"'; ?> />
-                                    <span class="etiqueta">N&uacute;mero</span>
+                                    <input name="es_rta" type="checkbox" id="es_rta" value="s"
+                                        <?php if ($res_doc != NULL || (isset($cod) && $cod != '')) echo 'checked="checked"'; ?> />
+
+                                    <span class="etiqueta">Radicado que se responde</span>
+
                                     <input name="numdoc" type="text" id="numdoc" class="inputTextCss"
-                                        onblur="this.value=trim(this.value);"
+                                        style="width:400px;"
+                                        placeholder="Digite o busque el radicado que se responde"
+                                        onblur="this.value=trim(this.value); if(this.value!=''){ get('es_rta').checked=true; }"
                                         onkeypress="<?php echo ($expr['num_car']); ?>"
                                         value="<?php echo isset($cod) ? $cod : ''; ?>">
+
                                     <input name="btn_bdoc" type="button" id="btn_bdoc" value="Buscar" class="inputButtonCss"
                                         onclick="xajax_solenv_documentosrecibidos('i',get('asu').value)" />
                                 </td>
@@ -2000,186 +2477,245 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
                 </div>
 
-                <div class="envmas-card envmas-card--full">
-                    <div class="envmas-title">4. Radicaci&oacute;n</div>
+                <?php if ($firma_activa) { ?>
+                    <div class="envmas-card " id="firma_wrap">
+                        <div class="envmas-title">5. Firma del usuario</div>
 
-                    <table class="envmas-table">
-                        <tr id="nradicado2" hidden="true">
-                            <td class="envmas-label">Radicado por documento</td>
-                            <td>
-                                <label style="margin-right:20px;">
-                                    <input name="radicado" type="radio" class="inputRadioCss" value="s"
-                                        onclick="document.getElementById('rad_sin').setAttribute('hidden','true');document.getElementById('rad_mas').removeAttribute('hidden');" />
-                                    S&iacute;
-                                </label>
+                        <table class="envmas-table">
+                            <tr>
+                                <td class="envmas-label">Modo de firma</td>
+                                <td>
+                                    <div style="display:flex; gap:18px; flex-wrap:wrap; align-items:center;">
+                                        <label class="envmas-chip">
+                                            <input type="radio" name="firma_tipo_selector" value="dibujar" checked
+                                                onclick="envmasCambiarModoFirma('dibujar')">
+                                            Dibujar firma
+                                        </label>
 
-                                <label>
-                                    <input name="radicado" type="radio" class="inputRadioCss" value="n" checked="checked"
-                                        onclick="document.getElementById('rad_mas').setAttribute('hidden','true');document.getElementById('rad_sin').removeAttribute('hidden');" />
-                                    No
-                                </label>
-                            </td>
-                        </tr>
+                                        <label class="envmas-chip">
+                                            <input type="radio" name="firma_tipo_selector" value="subir"
+                                                onclick="envmasCambiarModoFirma('subir')">
+                                            Subir imagen
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
 
-                        <tr id="anx_fisico">
-                            <td class="envmas-label">Tiene anexos en f&iacute;sico</td>
-                            <td>
-                                <label style="margin-right:20px;">
-                                    <input name="rfis" type="radio" class="inputRadioCss" value="s" />
-                                    S&iacute;
-                                </label>
-                                <label>
-                                    <input name="rfis" type="radio" class="inputRadioCss" value="n" checked="checked" />
-                                    No
-                                </label>
-                            </td>
-                        </tr>
+                            <tr id="firma_draw_row">
+                                <td class="envmas-label" style="vertical-align:top;">Dibujar firma</td>
+                                <td>
+                                    <div class="envmas-firma-box">
+                                        <canvas id="firma_canvas" width="100" height="100"
+                                            style="border:2px dashed #bfc7d1; border-radius:10px; background:#fff; display:block; width:700px; max-width:100%; height:220px; cursor:crosshair;">
+                                        </canvas>
 
-                        <tr id="doc_corr">
-                            <td class="envmas-label">Entrega unidad de correspondencia</td>
-                            <td>
-                                <label style="margin-right:20px;">
-                                    <input name="tent" type="radio" class="inputRadioCss" value="d" checked="checked"
-                                        onclick="ocultar('perso'); mostrar('anx_fisico');" />
-                                    S&iacute;
-                                </label>
+                                        <div class="envmas-firma-actions" style="margin-top:10px;">
+                                            <input type="button" class="inputButtonCss" value="Limpiar firma"
+                                                onclick="envmasLimpiarFirma();" />
+                                        </div>
 
-                                <label>
-                                    <input name="tent" type="radio" class="inputRadioCss" value="p"
-                                        onclick="mostrar('perso'); ocultar('anx_fisico'); document.getElementsByName('rfis')[1].checked=true;" />
-                                    No
-                                </label>
-                            </td>
-                        </tr>
+                                        <div class="envmas-small-note" style="margin-top:6px;">
+                                            Dibuje su firma dentro del recuadro.
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
 
-                        <tr>
-                            <td></td>
-                            <td>
-                                <div id="perso" class="envmas-box" style="display:none;">
-                                    <p>Si el documento es interno, usted es responsable de la entrega f&iacute;sica y SIGE solo har&aacute; la entrega digital.</p>
-                                    <p>Si el documento es externo, el sistema dejar&aacute; como entregado al destinatario el documento.</p>
-                                </div>
-                            </td>
-                        </tr>
+                            <tr id="firma_upload_row" style="display:none;">
+                                <td class="envmas-label" style="vertical-align:top;">Subir firma</td>
+                                <td>
+                                    <div class="envmas-firma-upload-wrap">
+                                        <input type="file"
+                                            name="firma_archivo"
+                                            id="firma_archivo"
+                                            accept=".png,.jpg,.jpeg,.webp" />
 
-                        <tr id="nota_titulo">
-                            <td class="envmas-label">Observaciones correspondencia</td>
-                            <td>
-                                <textarea name="nota_dse" rows="4" class="inputTextCss" id="nota_dse" style="width:500px"
-                                    onblur="this.value=trim(this.value);"
-                                    onkeypress="<?php echo ($expr['descripcion']); ?>"></textarea>
-                            </td>
-                        </tr>
+                                        <div class="envmas-small-note" style="margin-top:8px;">
+                                            Formatos permitidos: PNG, JPG, JPEG o WEBP.
+                                        </div>
 
-                        <tr id="titulo_radicado">
-                            <td colspan="2" style="text-align:center;">
-                                <span class="grupo">Generar radicado</span>
-                            </td>
-                        </tr>
+                                        <div id="firma_preview_wrap" style="display:none; margin-top:12px; position:relative; display:inline-block;">
 
-                        <tr>
-                            <td></td>
-                            <td>
-                                <input type="button" class="inputButtonCss" value="Obtener Radicado del Documento" id="gen_rad_btn"
-                                    onclick="envmasGenerarRadicado();" />
+                                            <button type="button"
+                                                onclick="envmasEliminarFirmaSubida();"
+                                                style="
+                                                    position:absolute;
+                                                    top:-8px;
+                                                    right:-8px;
+                                                    background:#ef4444;
+                                                    color:#fff;
+                                                    border:none;
+                                                    border-radius:50%;
+                                                    width:24px;
+                                                    height:24px;
+                                                    cursor:pointer;
+                                                    font-weight:bold;
+                                                    font-size:14px;
+                                                    line-height:20px;
+                                                ">
+                                                X
+                                            </button>
 
-                                <?php if ($ppal == 'ppal') { ?>
-                                    <input type="button" class="inputButtonCss" value="Imprimir sticker" id="imp_stiker_btn"
-                                        title="Imprimir sticker" style="visibility:hidden"
-                                        onclick="var vec_st=get('list_doc').value; xajax_doc_ent_ingDocRec2('',vec_st,'e');" />
-                                <?php } ?>
-                            </td>
-                        </tr>
-
-                        <tr id="rad_sin">
-                            <td class="envmas-label">N&uacute;mero de radicado</td>
-                            <td><span id="radicados_single" style="font-size:14px;"></span></td>
-                        </tr>
-
-                        <tr id="rad_mas" hidden="true">
-                            <td class="envmas-label">Radicados</td>
-                            <td>
-                                <div class="envmas-rad-table" id="radicados" style="width:100%; height:85px; overflow:auto;">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Destinatario</th>
-                                                <th>Radicado</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="radicados_all"></tbody>
-                                    </table>
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="envmas-card envmas-card--full">
-                    <div class="envmas-title">5. Plantilla y adjuntos</div>
+                                            <img id="firma_preview_img"
+                                                src=""
+                                                alt="Vista previa de firma"
+                                                style="max-height:120px; max-width:320px; border:1px solid #dbe3ee; border-radius:10px; padding:8px; background:#fff;">
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                <?php } ?>
+                <div class="envmas-card ">
+                    <div class="envmas-title">
+                        <?php echo $firma_activa ? '6. Plantilla y adjuntos' : '5. Plantilla y adjuntos'; ?>
+                    </div>
 
                     <table class="envmas-table">
                         <tr id="plantilla_adjunto_wrap">
-                            <td class="envmas-label">Documento base</td>
+
+                            <!-- LABEL -->
+                            <td class="envmas-label" style="vertical-align: top; padding-top: 6px;">
+                                Documento base
+                            </td>
+
+                            <!-- CONTENIDO -->
                             <td>
-                                <div class="envmas-file-row">
-                                    <div class="envmas-file-tool">
-                                        <input
-                                            id="btn_plantilla"
-                                            type="button"
-                                            class="inputButtonCss"
-                                            value="Descargar plantilla"
-                                            onclick="envmasDescargarPlantilla();" />
-                                    </div>
 
-                                    <div class="envmas-file-upload-wrap" id="adjunto">
-                                        <input type="file" name="file_a0" id="file_a0" />
-                                        <input type="hidden" name="id_ds" value="<?php echo $id_ds ?>" />
-
-                                        <input
-                                            type="button"
-                                            id="btn_mas_arch"
-                                            name="btn_mas_arch"
-                                            value="+"
-                                            title="Ingresar un nuevo archivo"
-                                            class="inputButtonCss"
-                                            onclick="xajax_add_mas_arch()" />
-                                    </div>
+                                <!-- BOTÓN -->
+                                <div style="margin-bottom:6px;">
+                                    <input
+                                        id="btn_plantilla"
+                                        type="button"
+                                        class="inputButtonCss"
+                                        value="Descargar plantilla"
+                                        onclick="envmasDescargarPlantilla();" />
                                 </div>
 
-                                <div class="envmas-file-table-wrap">
-                                    <table cellspacing="1" cellpadding="2" id="tb_mas_arch">
-                                        <tr>
+                                <!-- TABLA UNIFICADA -->
+                                <div class="envmas-file-table-wrap"
+                                    style="border:1px solid #dcdcdc; border-radius:4px; overflow:hidden;">
+
+                                    <table cellspacing="1" cellpadding="4" id="tb_mas_arch" style="width:100%;">
+
+                                        <!-- HEADER -->
+                                        <tr style="background:#f5f5f5;">
                                             <th style="width:30px;">&nbsp;</th>
                                             <th>Archivo adjunto</th>
+                                            <th style="width:40px;">&nbsp;</th>
                                         </tr>
+
+                                        <!-- INPUT PRINCIPAL -->
+                                        <tr>
+                                            <td style="text-align:center;">
+                                                <i class="bi bi-paperclip"></i>
+                                            </td>
+
+                                            <td>
+                                                <input
+                                                    type="file"
+                                                    name="file_a0"
+                                                    id="file_a0"
+                                                    style="width:100%;" />
+
+                                                <input
+                                                    type="hidden"
+                                                    name="id_ds"
+                                                    value="<?php echo $id_ds ?>" />
+                                            </td>
+
+                                            <td style="text-align:center;">
+                                                <input
+                                                    type="button"
+                                                    id="btn_mas_arch"
+                                                    name="btn_mas_arch"
+                                                    value="+"
+                                                    title="Agregar archivo"
+                                                    class="inputButtonCss"
+                                                    style="width:28px; height:26px; padding:0;"
+                                                    onclick="xajax_add_mas_arch()" />
+                                            </td>
+                                        </tr>
+
                                     </table>
                                 </div>
+
                             </td>
                         </tr>
                     </table>
+
+
+                    <div class="envmas-card envmas-card--full">
+                        <div class="envmas-actions">
+                            <input type="button" id="btn_finalizar" class="inputButtonCss" value="Finalizar" onclick="envmasFinalizar(this);" />
+                            <input type="button" id="btn_continuar_tarde" style="display:none" name="btnlist_dest"
+                                value="Continuar m&aacute;s tarde" class="inputButtonCss"
+                                onclick="envmasGuardarBorrador(this);" />
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="envmas-card envmas-card--full">
-                    <div class="envmas-actions">
-                        <input type="button" id="btn_finalizar" class="inputButtonCss" value="Finalizar" onclick="envmasFinalizar(this);" />
-                        <input type="button" id="btn_continuar_tarde" style="display:none" name="btnlist_dest"
-                            value="Continuar m&aacute;s tarde" class="inputButtonCss"
-                            onclick="envmasGuardarBorrador(this);" />
+                <div id="envmas_modal_espera" class="envmas-modal-espera">
+                    <div class="envmas-modal-espera-box">
+                        <div class="envmas-modal-espera-loader"></div>
+                        <div class="envmas-modal-espera-title">Espere...</div>
+                        <div class="envmas-modal-espera-text">Procesando la informaci&oacute;n del documento.</div>
                     </div>
                 </div>
 
-            </div>
+        </form>
 
-            <div id="envmas_modal_espera" class="envmas-modal-espera">
-                <div class="envmas-modal-espera-box">
-                    <div class="envmas-modal-espera-loader"></div>
-                    <div class="envmas-modal-espera-title">Espere...</div>
-                    <div class="envmas-modal-espera-text">Procesando la informaci&oacute;n del documento.</div>
+        <?php if ($firma_activa) { ?>
+            <div id="envmas_modal_firma" class="envmas-modal-espera" style="display:none;">
+                <div class="envmas-modal-espera-box" style="max-width:560px; text-align:left;">
+                    <div class="envmas-modal-espera-title">Firma digital</div>
+
+                    <div class="envmas-modal-espera-text" style="margin-bottom:14px;">
+                        Quieres enviar este archivo con firma digital?
+                    </div>
+
+                    <div style="background:#f8fafc; border:1px solid #dbe3ee; border-radius:10px; padding:14px; margin-bottom:16px;">
+                        <div style="margin-bottom:10px;">
+                            <strong>Firmante:</strong>
+                            <span id="envmas_modal_firma_nombre"><?php echo htmlspecialchars($n_fun, ENT_QUOTES, 'UTF-8'); ?></span>
+                        </div>
+
+                        <div style="margin-bottom:8px;">
+                            <strong>Correo registrado:</strong>
+                        </div>
+
+                        <div id="envmas_correo_existente_wrap" style="<?php echo $correo_firma !== '' ? '' : 'display:none;'; ?>">
+                            <div style="padding:10px 12px; background:#ffffff; border:1px solid #dbe3ee; border-radius:8px; color:#0f172a;">
+                                <span id="envmas_correo_existente"><?php echo htmlspecialchars($correo_firma, ENT_QUOTES, 'UTF-8'); ?></span>
+                            </div>
+                            <div class="envmas-small-note" style="margin-top:6px;">
+                                Este correo se usar&aacute; para firmar el documento.
+                            </div>
+                        </div>
+
+                        <div id="envmas_correo_input_wrap" style="<?php echo $correo_firma === '' ? '' : 'display:none;'; ?>">
+                            <input
+                                type="text"
+                                id="envmas_correo_manual"
+                                class="inputTextCss"
+                                style="width:100%;"
+                                placeholder="Digite el correo del firmante"
+                                value="<?php echo htmlspecialchars($correo_firma, ENT_QUOTES, 'UTF-8'); ?>" />
+                            <div class="envmas-small-note" style="margin-top:6px;">
+                                Como este usuario no tiene correo registrado, debes ingresarlo para continuar con la firma digital.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:12px; justify-content:center;">
+                        <input type="button" class="inputButtonCss" value="No" onclick="envmasConfirmarFirmaDigital('n');" />
+                        <input type="button" class="inputButtonCss" value="Si" onclick="envmasConfirmarFirmaDigital('s');" />
+                    </div>
                 </div>
             </div>
-
-        </form>
+        <?php } ?>
     </div>
     <?php
     $cont = ob_get_clean();
@@ -2198,9 +2734,249 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
     ?>
     (function () {
 
-    window.get = window.get || function (id) {
-    return document.getElementById(id);
+
+    window.envmasEliminarFirmaSubida = function () {
+
+    if (get('firma_archivo')) {
+    get('firma_archivo').value = '';
+    }
+
+    if (get('firma_preview_img')) {
+    get('firma_preview_img').src = '';
+    }
+
+    if (get('firma_preview_wrap')) {
+    get('firma_preview_wrap').style.display = 'none';
+    }
+
     };
+
+    window.envmasFirmaCanvas = null;
+    window.envmasFirmaCtx = null;
+    window.envmasFirmaDibujando = false;
+    window.envmasFirmaTieneTrazos = false;
+    window.envmasUltimoPuntoFirma = null;
+
+    window.envmasCambiarModoFirma = function (modo) {
+    if (get('firma_modo')) {
+    get('firma_modo').value = modo;
+    }
+
+    if (modo === 'dibujar') {
+    if (get('firma_archivo')) get('firma_archivo').value = '';
+    if (get('firma_preview_img')) get('firma_preview_img').src = '';
+    if (get('firma_preview_wrap')) get('firma_preview_wrap').style.display = 'none';
+
+    mostrar('firma_draw_row');
+    ocultar('firma_upload_row');
+
+    setTimeout(function () {
+    envmasInicializarFirma();
+    }, 100);
+    } else {
+    if (get('firma_data')) get('firma_data').value = '';
+    if (get('firma_limpia')) get('firma_limpia').value = 's';
+
+    ocultar('firma_draw_row');
+    mostrar('firma_upload_row');
+    }
+    };
+
+
+    window.envmasPrepararCanvasFirma = function () {
+    var canvas = get('firma_canvas');
+    if (!canvas) return false;
+
+    var rect = canvas.getBoundingClientRect();
+    var anchoVisual = Math.max(700, Math.round(rect.width || 700));
+    var altoVisual = 220;
+
+    canvas.width = anchoVisual;
+    canvas.height = altoVisual;
+
+    window.envmasFirmaCanvas = canvas;
+    window.envmasFirmaCtx = canvas.getContext('2d');
+
+    if (!window.envmasFirmaCtx) return false;
+
+    window.envmasFirmaCtx.fillStyle = '#ffffff';
+    window.envmasFirmaCtx.fillRect(0, 0, canvas.width, canvas.height);
+    window.envmasFirmaCtx.lineWidth = 2.5;
+    window.envmasFirmaCtx.lineCap = 'round';
+    window.envmasFirmaCtx.lineJoin = 'round';
+    window.envmasFirmaCtx.strokeStyle = '#111111';
+
+    return true;
+    };
+
+    window.envmasLimpiarFirma = function () {
+    if (!window.envmasFirmaCanvas || !window.envmasFirmaCtx) {
+    if (!envmasPrepararCanvasFirma()) return;
+    }
+
+    window.envmasFirmaCtx.clearRect(0, 0, window.envmasFirmaCanvas.width, window.envmasFirmaCanvas.height);
+    window.envmasFirmaCtx.fillStyle = '#ffffff';
+    window.envmasFirmaCtx.fillRect(0, 0, window.envmasFirmaCanvas.width, window.envmasFirmaCanvas.height);
+
+    window.envmasFirmaTieneTrazos = false;
+    window.envmasUltimoPuntoFirma = null;
+
+    if (get('firma_data')) get('firma_data').value = '';
+    if (get('firma_limpia')) get('firma_limpia').value = 's';
+
+    if (get('firma_archivo')) get('firma_archivo').value = '';
+    if (get('firma_preview_img')) get('firma_preview_img').src = '';
+    if (get('firma_preview_wrap')) get('firma_preview_wrap').style.display = 'none';
+    };
+
+    window.envmasGuardarFirmaCanvas = function () {
+    if (!window.envmasFirmaCanvas) return;
+
+    if (window.envmasFirmaTieneTrazos) {
+    if (get('firma_data')) {
+    get('firma_data').value = window.envmasFirmaCanvas.toDataURL('image/png');
+    }
+    if (get('firma_limpia')) {
+    get('firma_limpia').value = 'n';
+    }
+    } else {
+    if (get('firma_data')) get('firma_data').value = '';
+    if (get('firma_limpia')) get('firma_limpia').value = 's';
+    }
+    };
+
+    window.envmasObtenerPosicionFirma = function (e) {
+    var canvas = window.envmasFirmaCanvas;
+    var rect = canvas.getBoundingClientRect();
+
+    var clientX = 0;
+    var clientY = 0;
+
+    if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+    clientX = e.changedTouches[0].clientX;
+    clientY = e.changedTouches[0].clientY;
+    } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
+    }
+
+    return {
+    x: (clientX - rect.left) * (canvas.width / rect.width),
+    y: (clientY - rect.top) * (canvas.height / rect.height)
+    };
+    };
+
+    window.envmasIniciarDibujoFirma = function (e) {
+    if (!window.envmasFirmaCtx) return;
+
+    e.preventDefault();
+
+    var pos = envmasObtenerPosicionFirma(e);
+    window.envmasFirmaDibujando = true;
+    window.envmasFirmaTieneTrazos = true;
+    window.envmasUltimoPuntoFirma = pos;
+
+    window.envmasFirmaCtx.beginPath();
+    window.envmasFirmaCtx.moveTo(pos.x, pos.y);
+    };
+
+    window.envmasMoverFirma = function (e) {
+    if (!window.envmasFirmaDibujando || !window.envmasFirmaCtx) return;
+
+    e.preventDefault();
+
+    var pos = envmasObtenerPosicionFirma(e);
+
+    window.envmasFirmaCtx.lineTo(pos.x, pos.y);
+    window.envmasFirmaCtx.stroke();
+
+    window.envmasUltimoPuntoFirma = pos;
+    };
+
+    window.envmasDetenerDibujoFirma = function (e) {
+    if (!window.envmasFirmaDibujando) return;
+
+    if (e) e.preventDefault();
+
+    window.envmasFirmaDibujando = false;
+    window.envmasUltimoPuntoFirma = null;
+    envmasGuardarFirmaCanvas();
+    };
+
+    window.envmasInicializarFirma = function () {
+    var canvas = get('firma_canvas');
+    if (!canvas) return;
+
+    if (!envmasPrepararCanvasFirma()) return;
+
+    canvas.onmousedown = envmasIniciarDibujoFirma;
+    canvas.onmousemove = envmasMoverFirma;
+    canvas.onmouseup = envmasDetenerDibujoFirma;
+    canvas.onmouseleave = envmasDetenerDibujoFirma;
+
+    canvas.ontouchstart = envmasIniciarDibujoFirma;
+    canvas.ontouchmove = envmasMoverFirma;
+    canvas.ontouchend = envmasDetenerDibujoFirma;
+
+    var inputFirma = get('firma_archivo');
+    if (inputFirma) {
+    inputFirma.onchange = function () {
+    var file = this.files && this.files[0] ? this.files[0] : null;
+
+    if (!file) {
+    if (get('firma_preview_wrap')) get('firma_preview_wrap').style.display = 'none';
+    if (get('firma_preview_img')) get('firma_preview_img').src = '';
+    return;
+    }
+
+    var tiposPermitidos = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/bmp'];
+    if (tiposPermitidos.indexOf(file.type) === -1) {
+    alert('La firma debe ser una imagen PNG, JPG, JPEG o WEBP.');
+    this.value = '';
+    if (get('firma_preview_wrap')) get('firma_preview_wrap').style.display = 'none';
+    if (get('firma_preview_img')) get('firma_preview_img').src = '';
+    return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+    if (get('firma_preview_img')) get('firma_preview_img').src = ev.target.result;
+    if (get('firma_preview_wrap')) get('firma_preview_wrap').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    };
+    }
+    };
+
+    window.envmasValidarFirma = function () {
+    var firmaActiva = get('firma_activa') && get('firma_activa').value === 's';
+
+    if (!firmaActiva) {
+    return true;
+    }
+
+    var modo = get('firma_modo') ? get('firma_modo').value : 'dibujar';
+
+    if (modo === 'dibujar') {
+    envmasGuardarFirmaCanvas();
+
+    if (!get('firma_data') || get('firma_data').value === '' || get('firma_limpia').value === 's') {
+    mrcCrearDialogoInfo('Debe dibujar la firma del usuario.', '');
+    return false;
+    }
+    } else {
+    if (!get('firma_archivo') || !get('firma_archivo').files || get('firma_archivo').files.length === 0) {
+    mrcCrearDialogoInfo('Debe subir la imagen de la firma.', '');
+    return false;
+    }
+    }
+
+    return true;
+    };
+
 
     window.mostrar = window.mostrar || function (id) {
     var el = get(id);
@@ -2270,6 +3046,70 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         };
 
         window.envmasQuill=null;
+        window.envmasQuillCuerpo=null;
+
+        window.envmasCrearEditorCuerpo=function () {
+        if (!get('editor_cuerpo')) return;
+
+        try {
+        if (typeof Quill==='undefined' ) {
+        console.error('Quill no está cargado');
+        return;
+        }
+
+        if (window.envmasQuillCuerpo) return;
+
+        window.envmasQuillCuerpo=new Quill('#editor_cuerpo', {
+        theme: 'snow' ,
+        placeholder: 'Escriba aqui la descripcion general o cuerpo del documento...' ,
+        modules: {
+        toolbar: '#toolbar_cuerpo' ,
+        history: {
+        delay: 1000,
+        maxStack: 500,
+        userOnly: true
+        },
+        clipboard: {
+        matchVisual: false
+        }
+        }
+        });
+
+        window.envmasQuillCuerpo.on('text-change', function () {
+        envmasGuardarCuerpoDocumento();
+        });
+
+        envmasGuardarCuerpoDocumento();
+
+        } catch (e) {
+        console.error(e);
+        }
+        };
+
+        window.envmasGuardarCuerpoDocumento=function () {
+        if (window.envmasQuillCuerpo) {
+        var contenido='' ;
+
+        if (typeof window.envmasQuillCuerpo.getSemanticHTML==='function' ) {
+        contenido=window.envmasQuillCuerpo.getSemanticHTML();
+        } else {
+        contenido=window.envmasQuillCuerpo.root.innerHTML;
+        }
+
+        if (contenido==='<p><br></p>' || contenido.trim()==='' ) {
+        contenido='' ;
+        }
+
+        if (get('texto_doc')) {
+        get('texto_doc').value=contenido;
+        }
+
+        if (get('obs')) {
+        get('obs').value=contenido;
+        }
+        }
+        };
+
 
         window.envmasObtenerMensajeNota=function () {
         try {
@@ -2338,7 +3178,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         + '           <button class="ql-clean"></button>'
         + '       </span>'
         + '   </div>'
-        + '   <div id="mensaje_editor" class="envmas-editor-content"></div>'
+        + '   <div id="mensaje_editor" class="envmas-editor-content" style="min-height: 110px;"></div>'
         + '</div>' ;
 
         setTimeout(function () {
@@ -2402,37 +3242,49 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         };
 
         window.envmasCambiarTipoDocumento=function (tipo) {
+
         envmasLimpiarCamposDependientes();
         envmasResetNotaInterna();
 
+        function safeShow(id) {
+        if (get(id)) mostrar(id);
+        }
+
+        function safeHide(id) {
+        if (get(id)) ocultar(id);
+        }
+
+        /*=========================INTERNO=========================*/
         if (tipo==='i' ) {
-        mostrar('interno');
-        ocultar('externo');
 
-        mostrar('adjunto');
-        mostrar('des_anex');
-        mostrar('tr_folio');
-        mostrar('nota_titulo');
-        mostrar('plantilla_adjunto_wrap');
-        mostrar('gen_rad_btn');
-        mostrar('filSerie');
-        mostrar('filSubserie');
-        mostrar('titulo_radicado');
-        mostrar('doc_corr');
-        mostrar('anx_fisico');
-        mostrar('rad_sin');
+        safeShow('interno');
+        safeHide('externo');
 
-        ocultar('filmsn');
-        ocultar('rad_mas');
-        ocultar('btn_continuar_tarde');
+        safeShow('adjunto');
+        safeShow('des_anex');
+        safeShow('tr_folio');
+        safeShow('nota_titulo');
+        safeShow('plantilla_adjunto_wrap');
+        safeShow('gen_rad_btn');
+        safeShow('filSerie');
+        safeShow('filSubserie');
+        safeShow('titulo_radicado');
+        safeShow('doc_corr');
+        safeShow('anx_fisico');
+        safeShow('rad_sin');
+        safeShow('fila_editor_cuerpo');
 
-        mostrar('numdoc22');
-        ocultar('numdoc2');
-        mostrar('div_img');
-        mostrar('cc_para_th');
+        safeHide('filmsn');
+        safeHide('rad_mas');
+        safeHide('btn_continuar_tarde');
+
+        safeShow('numdoc22');
+        safeHide('numdoc2');
+        safeShow('div_img');
+        safeShow('cc_para_th');
 
         <?php if (!isset($opt_env['descripciong']['visible']) || $opt_env['descripciong']['visible'] != 'n') { ?>
-        mostrar('dg_doc');
+        safeShow('dg_doc');
         <?php } ?>
 
         if (document.getElementsByName('radicado')[1]) {
@@ -2443,7 +3295,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         if (get('rad_sin')) get('rad_sin').hidden=false;
         if (get('rad_mas')) get('rad_mas').hidden=true;
 
-        <?php if ($id_ser_sal_int != '' && $id_ser_sal_int != NULL) { ?>
+        <?php if ($id_ser_sal_int) { ?>
         if (get('id_ser')) get('id_ser').value='<?php echo $id_ser_sal_int; ?>' ;
         xajax_solenv_cargarSerie('', '<?php echo $id_ser_sal_int; ?>' );
         xajax_solenv_cargaSubserie('<?php echo $id_ser_sal_int; ?>');
@@ -2452,32 +3304,35 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         xajax_solenv_destino_i('m');
         }
 
+        /*=========================EXTERNO=========================*/
         if (tipo==='e' ) {
-        mostrar('externo');
-        ocultar('interno');
 
-        mostrar('adjunto');
-        mostrar('des_anex');
-        mostrar('tr_folio');
-        mostrar('nota_titulo');
-        mostrar('plantilla_adjunto_wrap');
-        mostrar('gen_rad_btn');
-        mostrar('filSerie');
-        mostrar('filSubserie');
-        mostrar('titulo_radicado');
-        mostrar('doc_corr');
-        mostrar('anx_fisico');
+        safeShow('externo');
+        safeHide('interno');
 
-        ocultar('filmsn');
-        ocultar('btn_continuar_tarde');
+        safeShow('adjunto');
+        safeShow('des_anex');
+        safeShow('tr_folio');
+        safeShow('nota_titulo');
+        safeShow('plantilla_adjunto_wrap');
+        safeShow('gen_rad_btn');
+        safeShow('filSerie');
+        safeShow('filSubserie');
+        safeShow('titulo_radicado');
+        safeShow('doc_corr');
+        safeShow('anx_fisico');
+        safeShow('fila_editor_cuerpo');
 
-        mostrar('numdoc2');
-        ocultar('numdoc22');
-        ocultar('div_img');
-        ocultar('cc_para_th');
+        safeHide('filmsn');
+        safeHide('btn_continuar_tarde');
+
+        safeShow('numdoc2');
+        safeHide('numdoc22');
+        safeHide('div_img');
+        safeHide('cc_para_th');
 
         <?php if (!isset($opt_env['descripciong']['visible']) || $opt_env['descripciong']['visible'] != 'n') { ?>
-        mostrar('dg_doc');
+        safeShow('dg_doc');
         <?php } ?>
 
         if (document.getElementsByName('radicado')[0]) {
@@ -2488,7 +3343,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         if (get('rad_sin')) get('rad_sin').hidden=true;
         if (get('rad_mas')) get('rad_mas').hidden=false;
 
-        <?php if ($id_ser_sal_ext != '' && $id_ser_sal_ext != NULL) { ?>
+        <?php if ($id_ser_sal_ext) { ?>
         if (get('id_ser')) get('id_ser').value='<?php echo $id_ser_sal_ext; ?>' ;
         xajax_solenv_cargaSubserie('<?php echo $id_ser_sal_ext; ?>');
         <?php } ?>
@@ -2496,43 +3351,51 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
         xajax_envmas_destino_e();
         }
 
+        /*=========================NOTA INTERNA 🔥 (CLAVE)=========================*/
         if (tipo==='n' ) {
-        ocultar('externo');
-        mostrar('interno');
 
-        ocultar('adjunto');
-        ocultar('des_anex');
-        ocultar('dg_doc');
-        ocultar('tr_folio');
-        ocultar('div_img');
-        ocultar('numdoc2');
-        ocultar('numdoc22');
-        ocultar('cc_para_th');
-        ocultar('anx_fisico');
-        ocultar('doc_corr');
-        ocultar('plantilla_adjunto_wrap');
+        safeHide('externo');
+        safeShow('interno');
 
-        mostrar('filmsn');
-        mostrar('btn_continuar_tarde');
-        mostrar('titulo_radicado');
-        mostrar('rad_sin');
-        mostrar('nota_titulo');
+        safeHide('adjunto');
+        safeHide('des_anex');
+        safeHide('dg_doc');
+        safeHide('fila_editor_cuerpo');
+        safeHide('tr_folio');
+        safeHide('div_img');
+        safeHide('numdoc2');
+        safeHide('numdoc22');
+        safeHide('cc_para_th');
+        safeHide('anx_fisico');
+        safeHide('doc_corr');
+        safeHide('plantilla_adjunto_wrap');
+
+        /* 🔥 IMPORTANTE */
+        safeShow('filmsn'); // muestra el contenedor
+        safeShow('btn_continuar_tarde');
+        safeShow('titulo_radicado');
+        safeShow('rad_sin');
+        safeShow('nota_titulo');
 
         if (get('nradicado2')) get('nradicado2').hidden=true;
         if (get('rad_mas')) get('rad_mas').hidden=true;
 
-        ocultar('filSerie');
-        ocultar('filSubserie');
+        safeHide('filSerie');
+        safeHide('filSubserie');
 
+        /* 🔥 CREA EDITOR */
+        setTimeout(function () {
         envmasCrearEditorNotaInterna();
+        }, 100);
 
         try {
         xajax_ocultar_campos('nota interna');
         } catch (e) {}
 
-        <?php if ($id_ser_nota_int != '' && $id_ser_nota_int != NULL) { ?>
+        <?php if ($id_ser_nota_int) { ?>
         if (get('id_ser')) get('id_ser').value='<?php echo $id_ser_nota_int; ?>' ;
-        xajax_solenv_cargaSubserie('<?php echo $id_ser_nota_int; ?>', '<?php echo $id_sub_ser_nota_int; ?>' );
+        xajax_solenv_cargaSubserie( '<?php echo $id_ser_nota_int; ?>' , '<?php echo $id_sub_ser_nota_int; ?>'
+        );
         <?php } ?>
 
         xajax_solenv_destino_i('m');
@@ -2696,15 +3559,28 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             return false;
             }
 
+            var firmaActiva = get('firma_activa') && get('firma_activa').value === 's';
+
+            if (firmaActiva) {
+            if (!envmasValidarFirma()) return false;
+
+            if (get('firma_modo') && get('firma_modo').value === 'dibujar') {
+            envmasGuardarFirmaCanvas();
+            }
+            }
+            envmasGuardarCuerpoDocumento();
+
             var lista_des = get('destinatarios').innerHTML;
             get('list_des_html').value = lista_des;
             get('docgenenvi').value = 'noenvio';
             get('btn_cerr').value = 'n';
 
+            get('frm_envmas').enctype = 'multipart/form-data';
             get('frm_envmas').action = '../../../build/documentacion/envio_docs/reprtf.php';
             get('frm_envmas').target = 'ventana';
             get('frm_envmas').submit();
             };
+            /*cambios*/
 
             window.envmasFinalizar = function () {
             get('accion_nota').value = 'f';
@@ -2715,15 +3591,34 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             get('docgenenvi').value = 'envigen';
             } catch (e) {}
 
+            envmasGuardarCuerpoDocumento();
+
             get('frm_envmas').target = 'ventana';
             get('frm_envmas').enctype = 'multipart/form-data';
-            get('frm_envmas').action = '../../../build/documentacion/envio_docs/envio_directo_copy.php';
+
+            var firmaActiva = get('firma_activa') && get('firma_activa').value === 's';
+
+            get('frm_envmas').action = firmaActiva
+            ? '../../../build/documentacion/envio_docs/envio_directo_copy.php'
+            : '../../../build/documentacion/envio_docs/envio_directo_copy3.php';
 
             if (!envmasValidarFormulario(true)) return false;
 
+            if (firmaActiva) {
+            if (!envmasValidarFirma()) return false;
+
+            if (get('firma_modo') && get('firma_modo').value === 'dibujar') {
+            envmasGuardarFirmaCanvas();
+            }
+            } else {
+            if (get('usar_firma_digital')) {
+            get('usar_firma_digital').value = 'n';
+            }
+            }
+
             var radiosTipo = document.getElementsByName('tip_doc');
 
-            if (radiosTipo[2].checked) {
+            if (radiosTipo[2] && radiosTipo[2].checked) {
             if (get('area_mensaje')) {
             get('area_mensaje').value = envmasObtenerMensajeNota();
             }
@@ -2735,6 +3630,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
             if (get('accion_editar').value !== 's') {
             var radi_unico = 'n';
+
             if (document.getElementsByName('radicado')[0] && document.getElementsByName('radicado')[0].checked) {
             radi_unico = 's';
             }
@@ -2745,9 +3641,64 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             }
 
             envmasConstruirListaDestinatarios();
+
+            if (firmaActiva && get('envmas_modal_firma')) {
+            get('envmas_modal_firma').style.display = 'flex';
+            return false;
+            }
+
+            envmasContinuarEnvioFinal();
+            return false;
+            };
+
+            window.envmasCerrarModalFirmaDigital = function () {
+            if (get('envmas_modal_firma')) {
+            get('envmas_modal_firma').style.display = 'none';
+            }
+            };
+
+            window.envmasContinuarEnvioFinal = function () {
             envmasMostrarEspera('Procesando la información del documento...');
             envmasBloquearBotones();
             get('frm_envmas').submit();
+            };
+
+            window.envmasEsCorreoValido = function (correo) {
+            var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(correo);
+            };
+
+            window.envmasConfirmarFirmaDigital = function (usarFirma) {
+            if (get('usar_firma_digital')) {
+            get('usar_firma_digital').value = usarFirma;
+            }
+
+            if (usarFirma === 's') {
+            var correoFinal = '';
+
+            if (get('envmas_correo_existente_wrap') && get('envmas_correo_existente_wrap').style.display !== 'none') {
+            correoFinal = get('envmas_correo_existente') ? get('envmas_correo_existente').innerHTML : '';
+            } else {
+            correoFinal = get('envmas_correo_manual') ? trim(get('envmas_correo_manual').value) : '';
+            }
+
+            if (correoFinal === '') {
+            mrcCrearDialogoInfo('Debe ingresar un correo para realizar la firma digital.', '');
+            return false;
+            }
+
+            if (!envmasEsCorreoValido(correoFinal)) {
+            mrcCrearDialogoInfo('El correo ingresado no es válido.', '');
+            return false;
+            }
+
+            if (get('firma_correo')) {
+            get('firma_correo').value = correoFinal;
+            }
+            }
+
+            envmasCerrarModalFirmaDigital();
+            envmasContinuarEnvioFinal();
             };
 
             window.envmasGuardarBorrador = function () {
@@ -2758,6 +3709,16 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
             if (!envmasValidarFormulario(true)) return false;
 
+            var firmaActiva = get('firma_activa') && get('firma_activa').value === 's';
+
+            if (firmaActiva) {
+            if (!envmasValidarFirma()) return false;
+
+            if (get('firma_modo') && get('firma_modo').value === 'dibujar') {
+            envmasGuardarFirmaCanvas();
+            }
+            }
+
             if (get('area_mensaje')) {
             get('area_mensaje').value = envmasObtenerMensajeNota();
             }
@@ -2766,6 +3727,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             envmasBloquearBotones();
 
             var radi_unico = 'n';
+
             if (document.getElementsByName('radicado')[0] && document.getElementsByName('radicado')[0].checked) {
             radi_unico = 's';
             }
@@ -2816,11 +3778,37 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             var myHandler = function (sType, aArgs) {
             var myAC = aArgs[0];
             var oData = aArgs[2];
+
             get("myInputCedula").value = oData[1];
             myAC.getInputEl().value = oData[0];
             };
 
             oAC.itemSelectEvent.subscribe(myHandler);
+
+            // ENTER en interno
+            YAHOO.util.Event.addListener("myInput", "keydown", function (e) {
+            var key = e.keyCode || e.which;
+
+            if (key === 13) {
+            YAHOO.util.Event.preventDefault(e);
+
+            // Si ya hay un destinatario válido seleccionado, agregar
+            if (get("myInputCedula") && get("myInputCedula").value !== "") {
+            envmasAgregarDestinatario();
+            return;
+            }
+
+            // Si hay resultados del autocomplete, tomar el primero
+            if (oAC._oResultData && oAC._oResultData.length > 0) {
+            var oData = oAC._oResultData[0];
+
+            get("myInputCedula").value = oData[1];
+            get("myInput").value = oData[0];
+
+            envmasAgregarDestinatario();
+            }
+            }
+            });
 
             return { oDS: oDS, oAC: oAC };
             }();
@@ -2867,6 +3855,7 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
             var myHandler5 = function (sType, aArgs) {
             var myAC = aArgs[0];
             var oData = aArgs[2];
+
             get("myInputCedula5").value = oData[1];
             get("myInputTipo5").value = oData[2];
             myAC.getInputEl().value = oData[0];
@@ -2874,11 +3863,44 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
             oAC5.itemSelectEvent.subscribe(myHandler5);
 
+            // ENTER en externo
+            YAHOO.util.Event.addListener("myInput5", "keydown", function (e) {
+            var key = e.keyCode || e.which;
+
+            if (key === 13) {
+            YAHOO.util.Event.preventDefault(e);
+
+            // Si ya hay destinatario externo válido seleccionado, agregar
+            if (get("myInputCedula5") && get("myInputCedula5").value !== "") {
+            envmasAgregarDestinatario();
+            return;
+            }
+
+            // Si hay resultados del autocomplete, tomar el primero
+            if (oAC5._oResultData && oAC5._oResultData.length > 0) {
+            var oData = oAC5._oResultData[0];
+
+            get("myInputCedula5").value = oData[1];
+            get("myInputTipo5").value = oData[2];
+            get("myInput5").value = oData[0];
+
+            envmasAgregarDestinatario();
+            }
+            }
+            });
             return { oDS5: oDS5, oAC5: oAC5 };
             }();
             } catch (e) { alert(e); }
 
             envmasActualizarEstado();
+            setTimeout(function () {
+            if (get('firma_activa') && get('firma_activa').value === 's') {
+            envmasInicializarFirma();
+            envmasCambiarModoFirma('dibujar');
+            }
+
+            envmasCrearEditorCuerpo();
+            }, 200);
 
             })();
         <?php
@@ -2902,6 +3924,53 @@ function envmas_inicio_nuevo($id_doc_par = NULL, $td_par = NULL, $res_doc = NULL
 
         if ($res_doc != NULL) {
             llenardatos_res($res_doc, $xres);
+
+            $res_docp = (array) json_decode($res_doc);
+            $radicado_responde = isset($res_docp['cod']) ? addslashes($res_docp['cod']) : '';
+
+            $xres->addScript("
+        setTimeout(function(){
+
+            var radicadoAnterior = '" . $radicado_responde . "';
+
+            if (radicadoAnterior === '' && get('radicados_single')) {
+                radicadoAnterior = get('radicados_single').innerHTML;
+            }
+
+            if (get('numdoc')) {
+                get('numdoc').value = radicadoAnterior;
+            }
+
+            if (get('es_rta')) {
+                get('es_rta').checked = true;
+            }
+
+            if (get('radicados_single')) {
+                get('radicados_single').innerHTML = '';
+            }
+
+            if (get('radicados_all')) {
+                get('radicados_all').innerHTML = '';
+            }
+
+            if (get('rad_g')) {
+                get('rad_g').value = 'n';
+            }
+
+            if (get('gen_rad_btn')) {
+                get('gen_rad_btn').style.display = '';
+                get('gen_rad_btn').style.visibility = 'visible';
+                get('gen_rad_btn').hidden = false;
+                get('gen_rad_btn').disabled = false;
+            }
+
+            if (get('fila_gen_rad_btn')) {
+                get('fila_gen_rad_btn').style.display = '';
+                get('fila_gen_rad_btn').hidden = false;
+            }
+
+        }, 1000);
+    ");
         }
 
         if ($td_par == 's') {
