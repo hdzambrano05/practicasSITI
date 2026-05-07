@@ -1,0 +1,2229 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>API Firma Digital · Documentación técnica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --ink: #08090c;
+        --ink-2: #1a1c23;
+        --ink-3: #2e3142;
+        --surface: #f4f2ee;
+        --surface-2: #edeae4;
+        --surface-3: #e5e1d9;
+        --cream: #faf9f6;
+        --accent: #1a1a2e;
+        --accent-2: #16213e;
+        --gold: #c9a84c;
+        --gold-l: #e8c76b;
+        --gold-s: #f7e9b5;
+        --text: #1c1d23;
+        --text-2: #4a4d5e;
+        --text-3: #7a7d8e;
+        --white: #ffffff;
+        --mono: "DM Mono", monospace;
+        --sans: "DM Sans", sans-serif;
+        --display: "Syne", sans-serif;
+        --r4: 4px;
+        --r8: 8px;
+        --r12: 12px;
+        --r16: 16px;
+        --r24: 24px;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        font-size: 16px;
+      }
+
+      body {
+        font-family: var(--sans);
+        background: var(--cream);
+        color: var(--text);
+        line-height: 1.6;
+        overflow-x: hidden;
+      }
+
+      ::selection {
+        background: var(--gold-s);
+        color: var(--ink);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      /* ─── TOPBAR ─── */
+      .topbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 900;
+        background: rgba(250, 249, 246, 0.88);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--surface-3);
+      }
+      .topbar-inner {
+        max-width: 1360px;
+        margin: 0 auto;
+        padding: 0 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        height: 60px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.02em;
+        color: var(--ink);
+      }
+      .logo-mark {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--r8);
+        background: var(--ink);
+        display: grid;
+        place-items: center;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--gold);
+        letter-spacing: 0.05em;
+      }
+      .logo-sep {
+        width: 1px;
+        height: 16px;
+        background: var(--surface-3);
+      }
+      .logo-sub {
+        font-weight: 300;
+        font-size: 13px;
+        color: var(--text-3);
+        font-family: var(--sans);
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .nav a {
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-3);
+        letter-spacing: 0.04em;
+        padding: 6px 14px;
+        border-radius: 999px;
+        transition: all 0.2s;
+      }
+      .nav a:hover {
+        color: var(--ink);
+        background: var(--surface-2);
+      }
+      .nav-dot {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-3);
+        padding: 6px 14px;
+      }
+      .nav-dot::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+      }
+
+      /* ─── LAYOUT ─── */
+      .layout {
+        max-width: 1360px;
+        margin: 0 auto;
+        padding: 100px 32px 80px;
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 48px;
+        align-items: start;
+      }
+
+      /* ─── SIDEBAR ─── */
+      .sidebar {
+        position: sticky;
+        top: 80px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .sidebar-section {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        padding: 16px 0 8px;
+        border-top: 1px solid var(--surface-3);
+        margin-top: 8px;
+      }
+      .sidebar-section:first-child {
+        border-top: none;
+        margin-top: 0;
+        padding-top: 0;
+      }
+      .sidebar a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13.5px;
+        color: var(--text-2);
+        padding: 8px 12px;
+        border-radius: var(--r8);
+        transition: all 0.15s;
+        border: 1px solid transparent;
+      }
+      .sidebar a:hover {
+        color: var(--ink);
+        background: var(--surface-2);
+        border-color: var(--surface-3);
+      }
+      .sidebar a .num {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--text-3);
+        min-width: 18px;
+      }
+
+      /* ─── MAIN ─── */
+      .main {
+        min-width: 0;
+      }
+
+      /* ─── HERO ─── */
+      .hero {
+        padding: 48px 56px;
+        background: var(--ink);
+        border-radius: var(--r24);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 32px;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: -120px;
+        right: -120px;
+        width: 400px;
+        height: 400px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(201, 168, 76, 0.18),
+          transparent 65%
+        );
+        pointer-events: none;
+      }
+      .hero::after {
+        content: "API FIRMA DIGITAL";
+        position: absolute;
+        bottom: -20px;
+        right: -8px;
+        font-family: var(--display);
+        font-size: 120px;
+        font-weight: 800;
+        color: rgba(255, 255, 255, 0.028);
+        letter-spacing: -4px;
+        pointer-events: none;
+        white-space: nowrap;
+        line-height: 1;
+      }
+      .hero-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        color: var(--gold);
+        background: rgba(201, 168, 76, 0.12);
+        border: 1px solid rgba(201, 168, 76, 0.25);
+        padding: 5px 12px;
+        border-radius: 999px;
+        margin-bottom: 24px;
+      }
+      .hero h1 {
+        font-family: var(--display);
+        font-size: clamp(32px, 3.5vw, 52px);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -1.5px;
+        color: var(--white);
+        margin-bottom: 16px;
+        max-width: 600px;
+      }
+      .hero p {
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.55);
+        line-height: 1.75;
+        max-width: 560px;
+        margin-bottom: 36px;
+        font-weight: 300;
+      }
+      .hero-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 40px;
+      }
+      .chip {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 5px 11px;
+        border-radius: var(--r4);
+        letter-spacing: 0.06em;
+      }
+      .chip-dark {
+        background: rgba(255, 255, 255, 0.07);
+        color: rgba(255, 255, 255, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .chip-gold {
+        background: rgba(201, 168, 76, 0.15);
+        color: var(--gold-l);
+        border: 1px solid rgba(201, 168, 76, 0.3);
+      }
+      .chip-green {
+        background: rgba(34, 197, 94, 0.1);
+        color: #86efac;
+        border: 1px solid rgba(34, 197, 94, 0.25);
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: var(--r12);
+        overflow: hidden;
+      }
+      .hero-stat {
+        padding: 18px 20px;
+        background: rgba(255, 255, 255, 0.025);
+      }
+      .hero-stat .v {
+        font-family: var(--display);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--white);
+        letter-spacing: -0.5px;
+        margin-bottom: 4px;
+      }
+      .hero-stat .l {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.4);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        line-height: 1.5;
+      }
+
+      /* ─── SECTION ─── */
+      .section {
+        margin-bottom: 32px;
+      }
+      .section-inner {
+        background: var(--white);
+        border: 1px solid var(--surface-3);
+        border-radius: var(--r24);
+        overflow: hidden;
+      }
+
+      .section-head {
+        padding: 32px 40px 28px;
+        border-bottom: 1px solid var(--surface-2);
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+      }
+      .section-num {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-3);
+        letter-spacing: 0.08em;
+        background: var(--surface);
+        border: 1px solid var(--surface-3);
+        padding: 4px 10px;
+        border-radius: var(--r4);
+        margin-top: 4px;
+        white-space: nowrap;
+      }
+      .section-title-wrap {
+      }
+      .section-title {
+        font-family: var(--display);
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.4px;
+        color: var(--ink);
+        margin-bottom: 6px;
+      }
+      .section-desc {
+        font-size: 14px;
+        color: var(--text-2);
+        line-height: 1.7;
+        max-width: 680px;
+        font-weight: 300;
+      }
+
+      .section-body {
+        padding: 32px 40px;
+      }
+      .section-body-sm {
+        padding: 24px 40px;
+      }
+
+      /* ─── OVERVIEW CARDS ─── */
+      .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .ov-card {
+        padding: 22px;
+        border: 1px solid var(--surface-2);
+        border-radius: var(--r16);
+        background: var(--cream);
+      }
+      .ov-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--r8);
+        display: grid;
+        place-items: center;
+        background: var(--surface-2);
+        margin-bottom: 14px;
+        font-size: 16px;
+      }
+      .ov-card h4 {
+        font-family: var(--display);
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--ink);
+      }
+      .ov-card p {
+        font-size: 13px;
+        color: var(--text-2);
+        line-height: 1.65;
+        font-weight: 300;
+      }
+
+      /* ─── FOLDER TREE ─── */
+      .folder-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .folder-item {
+        border-bottom: 1px solid var(--surface-2);
+      }
+      .folder-item:last-child {
+        border-bottom: none;
+      }
+      .folder-row {
+        display: grid;
+        grid-template-columns: 200px 1fr auto;
+        align-items: center;
+        gap: 20px;
+        padding: 16px 0;
+      }
+      .folder-path {
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--ink);
+        letter-spacing: 0.02em;
+      }
+      .folder-desc {
+        font-size: 13px;
+        color: var(--text-2);
+        line-height: 1.6;
+        font-weight: 300;
+      }
+      .badge {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 3px 9px;
+        border-radius: var(--r4);
+        white-space: nowrap;
+      }
+      .badge-blue {
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+      }
+      .badge-green {
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+      }
+      .badge-amber {
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+      }
+      .badge-red {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+      }
+      .badge-purple {
+        background: #faf5ff;
+        color: #7c3aed;
+        border: 1px solid #e9d5ff;
+      }
+      .badge-slate {
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+      }
+
+      /* ─── COMPONENTS TABLE ─── */
+      .comp-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .comp-table th {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        padding: 0 0 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--surface-3);
+      }
+      .comp-table td {
+        padding: 14px 0;
+        font-size: 13px;
+        color: var(--text-2);
+        border-bottom: 1px solid var(--surface-2);
+        vertical-align: top;
+        line-height: 1.6;
+        font-weight: 300;
+      }
+      .comp-table td:first-child {
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--ink);
+        padding-right: 16px;
+        white-space: nowrap;
+      }
+      .comp-table td:nth-child(2) {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-3);
+        padding-right: 16px;
+      }
+      .comp-table tr:last-child td {
+        border-bottom: none;
+      }
+      .importance {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .dot-critical {
+        background: #ef4444;
+      }
+      .dot-high {
+        background: #f59e0b;
+      }
+      .dot-med {
+        background: #22c55e;
+      }
+
+      /* ─── TIMELINE ─── */
+      .timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding-left: 28px;
+        border-left: 1px solid var(--surface-3);
+        margin-left: 12px;
+      }
+      .tl-step {
+        position: relative;
+        padding: 0 0 28px 28px;
+      }
+      .tl-step:last-child {
+        padding-bottom: 0;
+      }
+      .tl-dot {
+        position: absolute;
+        left: -7px;
+        top: 4px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--ink);
+        border: 2px solid var(--cream);
+        display: grid;
+        place-items: center;
+      }
+      .tl-dot-inner {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--gold);
+      }
+      .tl-num {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--text-3);
+        letter-spacing: 0.06em;
+        margin-bottom: 4px;
+      }
+      .tl-title {
+        font-family: var(--display);
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 6px;
+      }
+      .tl-desc {
+        font-size: 13px;
+        color: var(--text-2);
+        line-height: 1.68;
+        font-weight: 300;
+      }
+      .tl-code {
+        display: inline-flex;
+        align-items: center;
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-3);
+        background: var(--surface);
+        border: 1px solid var(--surface-3);
+        padding: 2px 8px;
+        border-radius: var(--r4);
+        margin-top: 8px;
+      }
+
+      /* ─── ENDPOINTS ─── */
+      .endpoint-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .ep {
+        border: 1px solid var(--surface-3);
+        border-radius: var(--r16);
+        overflow: hidden;
+      }
+      .ep-head {
+        padding: 18px 24px;
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border-bottom: 1px solid var(--surface-3);
+      }
+      .method {
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.07em;
+        padding: 4px 10px;
+        border-radius: var(--r4);
+      }
+      .method-post {
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+      }
+      .method-get {
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+      }
+
+      .ep-path {
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--ink);
+        letter-spacing: 0.02em;
+      }
+      .ep-title {
+        margin-left: auto;
+        font-family: var(--display);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-3);
+      }
+      .ep-body {
+        padding: 22px 24px;
+      }
+      .ep-body p {
+        font-size: 13px;
+        color: var(--text-2);
+        line-height: 1.68;
+        margin-bottom: 14px;
+        font-weight: 300;
+      }
+      .ep-body ul {
+        padding-left: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 18px;
+      }
+      .ep-body li {
+        font-size: 13px;
+        color: var(--text-2);
+        font-weight: 300;
+      }
+
+      /* ─── CODE BLOCK ─── */
+      .code-wrap {
+        border-radius: var(--r12);
+        overflow: hidden;
+        border: 1px solid #1e2235;
+      }
+      .code-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        background: #0d1117;
+        border-bottom: 1px solid #1e2235;
+      }
+      .code-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: #8b949e;
+        letter-spacing: 0.06em;
+        font-weight: 500;
+      }
+      .code-dots {
+        display: flex;
+        gap: 6px;
+      }
+      .code-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      pre {
+        background: #0d1117;
+        padding: 18px 20px;
+        overflow-x: auto;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        line-height: 1.75;
+        color: #c9d1d9;
+      }
+      .tok-key {
+        color: #7dd3fc;
+      }
+      .tok-str {
+        color: #86efac;
+      }
+      .tok-num {
+        color: #f9a8d4;
+      }
+      .tok-cmt {
+        color: #6e7681;
+        font-style: italic;
+      }
+      .tok-tag {
+        color: #f97316;
+      }
+
+      /* ─── IO GRID ─── */
+      .io-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      /* ─── SECURITY ─── */
+      .sec-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .sec-card {
+        padding: 22px;
+        border-radius: var(--r16);
+        border: 1px solid var(--surface-2);
+        background: var(--cream);
+      }
+      .sec-card h4 {
+        font-family: var(--display);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sec-card ul {
+        padding-left: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .sec-card li {
+        font-size: 13px;
+        color: var(--text-2);
+        line-height: 1.6;
+        font-weight: 300;
+      }
+
+      .notice {
+        padding: 16px 20px;
+        border-radius: var(--r12);
+        border: 1px solid #fde68a;
+        background: #fffbeb;
+        font-size: 13px;
+        color: #92400e;
+        line-height: 1.65;
+        font-weight: 400;
+      }
+      .notice strong {
+        color: #78350f;
+        font-weight: 500;
+      }
+
+      /* ─── DEPS ─── */
+      .deps-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+      .dep {
+        padding: 20px;
+        border-radius: var(--r16);
+        border: 1px solid var(--surface-2);
+        background: var(--cream);
+      }
+      .dep-name {
+        font-family: var(--display);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dep p {
+        font-size: 12.5px;
+        color: var(--text-2);
+        line-height: 1.6;
+        font-weight: 300;
+      }
+
+      /* ─── RECS ─── */
+      .recs-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+      }
+      .rec {
+        padding: 22px;
+        border-radius: var(--r16);
+        border: 1px solid var(--surface-2);
+        background: var(--cream);
+      }
+      .rec-step {
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        color: var(--text-3);
+        margin-bottom: 10px;
+      }
+      .rec h4 {
+        font-family: var(--display);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 8px;
+      }
+      .rec p {
+        font-size: 13px;
+        color: var(--text-2);
+        line-height: 1.65;
+        font-weight: 300;
+      }
+
+      /* ─── FOOTER ─── */
+      .footer {
+        max-width: 1360px;
+        margin: 0 auto;
+        padding: 24px 32px 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-top: 1px solid var(--surface-3);
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--text-3);
+        letter-spacing: 0.04em;
+      }
+
+      /* ─── ANIMATIONS ─── */
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .hero {
+        animation: fadeUp 0.5s ease both;
+      }
+      .section {
+        animation: fadeUp 0.4s ease both;
+      }
+
+      /* ─── RESPONSIVE ─── */
+      @media (max-width: 1100px) {
+        .layout {
+          grid-template-columns: 1fr;
+          padding-top: 80px;
+        }
+        .sidebar {
+          display: none;
+        }
+        .overview-grid,
+        .sec-grid,
+        .io-grid,
+        .recs-grid,
+        .deps-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .hero-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .hero::after {
+          display: none;
+        }
+      }
+      @media (max-width: 700px) {
+        .layout {
+          padding: 70px 16px 48px;
+        }
+        .topbar-inner {
+          padding: 0 16px;
+        }
+        .hero {
+          padding: 28px 24px;
+        }
+        .section-head {
+          padding: 22px 24px 18px;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .section-body,
+        .section-body-sm {
+          padding: 20px 24px;
+        }
+        .folder-row {
+          grid-template-columns: 1fr;
+        }
+        .hero-grid,
+        .overview-grid,
+        .sec-grid,
+        .io-grid,
+        .recs-grid,
+        .deps-grid {
+          grid-template-columns: 1fr;
+        }
+        .nav {
+          display: none;
+        }
+        .hero::after {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="logo">
+          <div class="logo-mark">FD</div>
+          <span>API Firma Digital</span>
+          <div class="logo-sep"></div>
+          <span class="logo-sub">Documentación técnica v1.0</span>
+        </div>
+        <nav class="nav">
+          <a href="#overview">Visión general</a>
+          <a href="#estructura">Estructura</a>
+          <a href="#flujo">Flujo</a>
+          <a href="#endpoints">Endpoints</a>
+          <a href="#seguridad">Seguridad</a>
+          <div class="nav-dot">Sistema activo</div>
+        </nav>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-section">Introducción</div>
+        <a href="#overview"><span class="num">01</span>Visión general</a>
+        <a href="#estructura"><span class="num">02</span>Estructura</a>
+        <a href="#componentes"><span class="num">03</span>Componentes</a>
+
+        <div class="sidebar-section">Operación</div>
+        <a href="#flujo"><span class="num">04</span>Flujo operativo</a>
+        <a href="#endpoints"><span class="num">05</span>Endpoints</a>
+        <a href="#io"><span class="num">06</span>Entradas y salidas</a>
+
+        <div class="sidebar-section">Infraestructura</div>
+        <a href="#seguridad"><span class="num">07</span>Seguridad</a>
+        <a href="#deps"><span class="num">08</span>Dependencias</a>
+        <a href="#recs"><span class="num">09</span>Recomendaciones</a>
+      </aside>
+
+      <!-- MAIN -->
+      <main class="main">
+        <!-- HERO -->
+        <div class="hero">
+          <div class="hero-label">Documentación oficial · Backend PHP</div>
+          <h1>Plataforma de firma digital para documentos PDF</h1>
+          <p>
+            Procesamiento, sellado criptográfico y distribución controlada de
+            documentos con firma visible y certificado digital. Arquitectura
+            modular, orientada a flujos institucionales.
+          </p>
+          <div class="hero-chips">
+            <span class="chip chip-gold">PDF · CRT · PEM</span>
+            <span class="chip chip-dark">FPDF · FPDI · DOMPDF</span>
+            <span class="chip chip-dark">Slim Framework</span>
+            <span class="chip chip-green">phpqrcode</span>
+            <span class="chip chip-dark">phpmailer</span>
+          </div>
+          <div class="hero-grid">
+            <div class="hero-stat">
+              <div class="v">7</div>
+              <div class="l">Módulos principales</div>
+            </div>
+            <div class="hero-stat">
+              <div class="v">PDF</div>
+              <div class="l">Formato de salida</div>
+            </div>
+            <div class="hero-stat">
+              <div class="v">TMP</div>
+              <div class="l">Archivos intermedios</div>
+            </div>
+            <div class="hero-stat">
+              <div class="v">CRT</div>
+              <div class="l">Certificado digital</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 01 OVERVIEW -->
+        <section id="overview" class="section">
+          <div class="section-inner">
+            <div class="section-head">
+              <span class="section-num">01</span>
+              <div class="section-title-wrap">
+                <div class="section-title">Visión general</div>
+                <p class="section-desc">
+                  La API gestiona un flujo completo de firma documental que
+                  combina presentación visual, procesamiento interno y
+                  validación criptográfica. El sistema contempla controladores
+                  de acceso, clases de negocio, certificados, carpetas de
+                  trabajo y librerías externas para construir, firmar y entregar
+                  documentos listos para uso institucional.
+                </p>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="overview-grid">
+                <div class="ov-card">
+                  <div class="ov-icon">📄</div>
+                  <h4>Propósito principal</h4>
+                  <p>
+                    Automatizar la creación y firma de documentos digitales,
+                    integrando firma visible del usuario, certificado digital y
+                    almacenamiento controlado del archivo final.
+                  </p>
+                </div>
+                <div class="ov-card">
+                  <div class="ov-icon">⚙️</div>
+                  <h4>Tipo de solución</h4>
+                  <p>
+                    API backend en PHP con librerías especializadas para PDFs,
+                    correo, QR y manejo de recursos criptográficos, organizada
+                    por capas de acceso y clases reutilizables.
+                  </p>
+                </div>
+                <div class="ov-card">
+                  <div class="ov-icon">🏛️</div>
+                  <h4>Escenario de uso</h4>
+                  <p>
+                    Emisión de oficios, constancias, comunicaciones internas o
+                    documentos que requieren evidencia visual de firma y una
+                    capa de integridad digital certificada.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 02 ESTRUCTURA -->
+        <section id="estructura" class="section">
+          <div class="section-inner">
+            <div class="section-head">
+              <span class="section-num">02</span>
+              <div class="section-title-wrap">
+                <div class="section-title">Estructura del proyecto</div>
+                <p class="section-desc">
+                  Organización funcional identificada en
+                  <code
+                    style="
+                      font-family: var(--mono);
+                      font-size: 12px;
+                      background: var(--surface);
+                      padding: 2px 7px;
+                      border-radius: 4px;
+                    "
+                    >/var/www/html/ApiFirma/</code
+                  >
+                  — separa autenticación, certificados, lógica de negocio,
+                  configuración, librerías, almacenamiento y temporales.
+                </p>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="folder-list">
+                <div class="folder-item">
+                  <div class="folder-row">
+                    <div class="folder-path">/aut/</div>
+                    <div class="folder-desc">
+                      Punto de entrada del proceso. Contiene
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >firma.php</code
+                      >
+                      e
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >index.php</code
+                      >
+                      — módulo de autenticación y ejecución del flujo de firma
+                      desde interfaz web o cliente HTTP.
+                    </div>
+                    <span class="badge badge-blue">Acceso</span>
+                  </div>
+                </div>
+                <div class="folder-item">
+                  <div class="folder-row">
+                    <div class="folder-path">/certificados/</div>
+                    <div class="folder-desc">
+                      Almacena
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >certificado.crt</code
+                      >
+                      y
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >clave_privada.pem</code
+                      >. Carpeta crítica: restringir acceso total. Material
+                      criptográfico usado para sellado digital del PDF final.
+                    </div>
+                    <span class="badge badge-red">Crítico</span>
+                  </div>
+                </div>
+                <div class="folder-item">
+                  <div class="folder-row">
+                    <div class="folder-path">/clases/</div>
+                    <div class="folder-desc">
+                      Lógica de negocio principal. Incluye
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >FirmaDigital.php</code
+                      >,
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >FirmaRepository.php</code
+                      >,
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >PdfFirmado.php</code
+                      >,
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >QrFirma.php</code
+                      >
+                      y
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >cliente.php</code
+                      >. Concentra firma, repositorio y construcción del PDF
+                      firmado.
+                    </div>
+                    <span class="badge badge-amber">Lógica</span>
+                  </div>
+                </div>
+                <div class="folder-item">
+                  <div class="folder-row">
+                    <div class="folder-path">/docs/</div>
+                    <div class="folder-desc">
+                      Recursos visuales y resultados finales. Subcarpetas
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >firmados/</code
+                      >
+                      y
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >qrs/</code
+                      >
+                      almacenan el PDF sellado y los códigos QR asociados.
+                      También contiene
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >firma.jpg</code
+                      >.
+                    </div>
+                    <span class="badge badge-green">Entrega</span>
+                  </div>
+                </div>
+                <div class="folder-item">
+                  <div class="folder-row">
+                    <div class="folder-path">/include/</div>
+                    <div class="folder-desc">
+                      Configuración centralizada:
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >Config.php</code
+                      >,
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >ConfigFirma.php</code
+                      >,
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >DbConnect.php</code
+                      >
+                      y
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >DbHandler.php</code
+                      >. Parámetros de firma, rutas sensibles y posible capa de
+                      persistencia.
+                    </div>
+                    <span class="badge badge-blue">Config</span>
+                  </div>
+                </div>
+                <div class="folder-item">
+                  <div class="folder-row">
+                    <div class="folder-path">/libs/</div>
+                    <div class="folder-desc">
+                      Dependencias externas:
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >dompdf</code
+                      >,
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >FPDF</code
+                      >,
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >FPDI</code
+                      >,
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >phpmailer</code
+                      >,
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >phpqrcode</code
+                      >
+                      y
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >Slim</code
+                      >. Soporte a generación de PDF, QR, correo y estructura
+                      HTTP de la API.
+                    </div>
+                    <span class="badge badge-purple">Libs</span>
+                  </div>
+                </div>
+                <div class="folder-item" style="border-bottom: none">
+                  <div class="folder-row">
+                    <div class="folder-path">/tmp/</div>
+                    <div class="folder-desc">
+                      Archivos intermedios del pipeline: PNG de firma, HTML
+                      convertidos a PDF y versiones preliminares. Carpeta
+                      esencial en el proceso — requiere limpieza periódica para
+                      evitar acumulación de datos sensibles.
+                    </div>
+                    <span class="badge badge-slate">Temporal</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 03 COMPONENTES -->
+        <section id="componentes" class="section">
+          <div class="section-inner">
+            <div class="section-head">
+              <span class="section-num">03</span>
+              <div class="section-title-wrap">
+                <div class="section-title">Componentes clave</div>
+                <p class="section-desc">
+                  Responsabilidad estimada de los archivos principales a partir
+                  de su nombre y organización dentro del proyecto.
+                </p>
+              </div>
+            </div>
+            <div class="section-body">
+              <table class="comp-table">
+                <thead>
+                  <tr>
+                    <th>Componente</th>
+                    <th>Ubicación</th>
+                    <th>Responsabilidad</th>
+                    <th>Nivel</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>firma.php</td>
+                    <td>/aut/</td>
+                    <td>
+                      Punto de entrada del proceso de firmado. Recibe
+                      solicitudes desde interfaz o cliente HTTP y orquesta el
+                      flujo general.
+                    </td>
+                    <td>
+                      <span class="importance"
+                        ><span class="dot dot-high"></span>Alta</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>FirmaDigital.php</td>
+                    <td>/clases/</td>
+                    <td>
+                      Encapsula la lógica criptográfica completa: lectura del
+                      certificado, clave privada y aplicación de la firma
+                      digital al PDF.
+                    </td>
+                    <td>
+                      <span class="importance"
+                        ><span class="dot dot-critical"></span>Crítica</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>PdfFirmado.php</td>
+                    <td>/clases/</td>
+                    <td>
+                      Generación y composición del PDF final con firma visible,
+                      datos del firmante, pie documental y elementos gráficos.
+                    </td>
+                    <td>
+                      <span class="importance"
+                        ><span class="dot dot-high"></span>Alta</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>QrFirma.php</td>
+                    <td>/clases/</td>
+                    <td>
+                      Creación del código QR asociado al documento para
+                      trazabilidad y validación posterior del documento firmado.
+                    </td>
+                    <td>
+                      <span class="importance"
+                        ><span class="dot dot-med"></span>Media</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>FirmaRepository.php</td>
+                    <td>/clases/</td>
+                    <td>
+                      Persistencia lógica de archivos, rutas, metadatos e
+                      historial del proceso de firma. Administra el ciclo de
+                      vida documental.
+                    </td>
+                    <td>
+                      <span class="importance"
+                        ><span class="dot dot-high"></span>Alta</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>ConfigFirma.php</td>
+                    <td>/include/</td>
+                    <td>
+                      Parámetros específicos del módulo: rutas de certificados,
+                      nombres de carpetas y constantes de configuración del
+                      sistema.
+                    </td>
+                    <td>
+                      <span class="importance"
+                        ><span class="dot dot-high"></span>Alta</span
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>certificado.crt / clave_privada.pem</td>
+                    <td>/certificados/</td>
+                    <td>
+                      Material criptográfico de la firma digital. Nunca debe
+                      exponerse en repositorios ni sistemas de log o respaldo
+                      inseguros.
+                    </td>
+                    <td>
+                      <span class="importance"
+                        ><span class="dot dot-critical"></span>Crítica</span
+                      >
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 04 FLUJO -->
+        <section id="flujo" class="section">
+          <div class="section-inner">
+            <div class="section-head">
+              <span class="section-num">04</span>
+              <div class="section-title-wrap">
+                <div class="section-title">Flujo operativo</div>
+                <p class="section-desc">
+                  El proceso se desarrolla en seis etapas consecutivas — desde
+                  la recepción de la solicitud hasta la entrega del PDF sellado
+                  con firma criptográfica y QR de trazabilidad.
+                </p>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="timeline">
+                <div class="tl-step">
+                  <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+                  <div class="tl-num">PASO 01</div>
+                  <div class="tl-title">Recepción de la solicitud</div>
+                  <div class="tl-desc">
+                    El cliente envía la información del documento, los datos del
+                    firmante y la imagen de firma visible en formato PNG o ruta
+                    temporal disponible en el servidor.
+                  </div>
+                </div>
+                <div class="tl-step">
+                  <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+                  <div class="tl-num">PASO 02</div>
+                  <div class="tl-title">Generación de archivos intermedios</div>
+                  <div class="tl-desc">
+                    El sistema crea recursos auxiliares dentro de
+                    <span class="tl-code">/tmp/</span> — imágenes PNG de la
+                    firma, versiones HTML y PDFs preliminares necesarios para
+                    componer el documento final.
+                  </div>
+                </div>
+                <div class="tl-step">
+                  <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+                  <div class="tl-num">PASO 03</div>
+                  <div class="tl-title">Construcción del documento visual</div>
+                  <div class="tl-desc">
+                    Mediante FPDF, FPDI o DOMPDF se compone el contenido, se
+                    insertan datos institucionales, la firma visible del usuario
+                    y elementos gráficos como el código QR de validación.
+                  </div>
+                </div>
+                <div class="tl-step">
+                  <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+                  <div class="tl-num">PASO 04</div>
+                  <div class="tl-title">Aplicación de firma criptográfica</div>
+                  <div class="tl-desc">
+                    La API usa <span class="tl-code">certificado.crt</span> y
+                    <span class="tl-code">clave_privada.pem</span> para sellar
+                    digitalmente el PDF, garantizando integridad y autenticidad
+                    documental verificable por terceros.
+                  </div>
+                </div>
+                <div class="tl-step">
+                  <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+                  <div class="tl-num">PASO 05</div>
+                  <div class="tl-title">Almacenamiento del resultado</div>
+                  <div class="tl-desc">
+                    El archivo firmado se publica en
+                    <span class="tl-code">/docs/firmados/</span>. Los QR
+                    generados quedan en <span class="tl-code">/docs/qrs/</span>.
+                    Los temporales en <span class="tl-code">/tmp/</span> son
+                    candidatos a eliminación inmediata.
+                  </div>
+                </div>
+                <div class="tl-step">
+                  <div class="tl-dot"><div class="tl-dot-inner"></div></div>
+                  <div class="tl-num">PASO 06</div>
+                  <div class="tl-title">Respuesta al cliente</div>
+                  <div class="tl-desc">
+                    La API retorna estado de éxito o error, junto con la ruta o
+                    referencia del documento firmado para su descarga,
+                    distribución o consulta posterior desde otros sistemas.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 05 ENDPOINTS -->
+        <section id="endpoints" class="section">
+          <div class="section-inner">
+            <div class="section-head">
+              <span class="section-num">05</span>
+              <div class="section-title-wrap">
+                <div class="section-title">Endpoints</div>
+                <p class="section-desc">
+                  Endpoints reales implementados en la API de firma digital.
+                </p>
+              </div>
+            </div>
+
+            <div class="section-body">
+              <div class="endpoint-grid">
+                <!-- HTML -->
+                <div class="ep">
+                  <div class="ep-head">
+                    <span class="method method-post">POST</span>
+                    <span class="ep-path">/firma/html</span>
+                    <span class="ep-title">Firmar documento desde HTML</span>
+                  </div>
+                  <div class="ep-body">
+                    <p>
+                      Genera un documento PDF a partir de contenido HTML y
+                      aplica firma digital.
+                    </p>
+                    <ul>
+                      <li>Convierte HTML a PDF</li>
+                      <li>Inserta firma visible</li>
+                      <li>Genera código QR</li>
+                      <li>Aplica firma criptográfica</li>
+                    </ul>
+
+                    <div class="code-wrap">
+                      <div class="code-top">
+                        <span class="code-label">REQUEST BODY</span>
+                      </div>
+                      <pre>
+{
+  "nombre": "Harold Zambrano",
+  "correo": "usuario@correo.com",
+  "ciudad": "Pasto",
+  "html_contenido": "&lt;h1&gt;Documento&lt;/h1&gt;",
+  "nombre_documento": "archivo.html",
+  "foto_firma": "base64_opcional",
+  "ruta_firma": "/ruta/opcional/firma.png"
+}</pre
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- PDF -->
+                <div class="ep">
+                  <div class="ep-head">
+                    <span class="method method-post">POST</span>
+                    <span class="ep-path">/firma/pdf</span>
+                    <span class="ep-title">Firmar PDF existente</span>
+                  </div>
+                  <div class="ep-body">
+                    <p>
+                      Firma un documento PDF enviado en base64 o desde una URL.
+                    </p>
+                    <ul>
+                      <li>Soporta base64 o URL</li>
+                      <li>Valida el archivo PDF</li>
+                      <li>Aplica firma digital</li>
+                      <li>Genera QR de verificación</li>
+                    </ul>
+
+                    <div class="code-wrap">
+                      <div class="code-top">
+                        <span class="code-label">REQUEST BODY</span>
+                      </div>
+                      <pre>
+{
+  "nombre": "Harold",
+  "correo": "correo@ejemplo.com",
+  "ciudad": "Pasto",
+  "pdf_base64": "opcional",
+  "pdf_url": "opcional",
+  "foto_firma": "base64",
+  "ruta_firma": "/ruta/firma.png"
+}</pre
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- VERIFICAR -->
+                <div class="ep">
+                  <div class="ep-head">
+                    <span class="method method-get">GET</span>
+                    <span class="ep-path">/firma/verificar/{token}</span>
+                    <span class="ep-title">Verificar documento</span>
+                  </div>
+                  <div class="ep-body">
+                    <p>
+                      Permite validar la autenticidad de un documento firmado
+                      mediante su token.
+                    </p>
+                    <ul>
+                      <li>Consulta información del documento</li>
+                      <li>Retorna datos del firmante</li>
+                      <li>Permite trazabilidad</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- DESCARGAR -->
+                <div class="ep">
+                  <div class="ep-head">
+                    <span class="method method-get">GET</span>
+                    <span class="ep-path">/firma/descargar/{token}</span>
+                    <span class="ep-title">Descargar documento</span>
+                  </div>
+                  <div class="ep-body">
+                    <p>
+                      Descarga el PDF firmado directamente desde el servidor.
+                    </p>
+                    <ul>
+                      <li>Entrega archivo PDF</li>
+                      <li>Usa token único</li>
+                      <li>Controlado por backend</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div class="ep">
+                <div class="ep-head">
+                  <span class="method method-post">AUTH</span>
+                  <span class="ep-path">Authorization Header</span>
+                  <span class="ep-title">Token requerido</span>
+                </div>
+                <div class="ep-body">
+                  <p>
+                    Todos los endpoints de la API requieren un token de
+                    autorización para su funcionamiento. Este token se encuentra
+                    configurado en el archivo
+                    <strong>/include/Config.php</strong> como
+                    <strong>API_KEY</strong>.
+                  </p>
+
+                  <ul>
+                    <li>
+                      Debe enviarse en el header <strong>Authorization</strong>
+                    </li>
+                    <li>Es obligatorio para todas las peticiones</li>
+                    <li>Si no se envía → error de acceso</li>
+                    <li>Si es inválido → acceso denegado</li>
+                  </ul>
+
+                  <div class="code-wrap">
+                    <div class="code-top">
+                      <span class="code-label">HEADERS</span>
+                    </div>
+                    <pre>
+                        Authorization: TU_API_KEY
+                        Content-Type: application/json
+                    </pre
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 06 IO -->
+        <section id="io" class="section">
+          <div class="section-inner">
+            <div class="section-head">
+              <span class="section-num">06</span>
+              <div class="section-title-wrap">
+                <div class="section-title">Entradas y salidas</div>
+                <p class="section-desc">
+                  Esquema de referencia para la información mínima esperada por
+                  la API y el formato de respuesta estándar recomendado.
+                </p>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="io-grid">
+                <div>
+                  <div
+                    style="
+                      font-family: var(--mono);
+                      font-size: 10px;
+                      font-weight: 500;
+                      letter-spacing: 0.1em;
+                      text-transform: uppercase;
+                      color: var(--text-3);
+                      margin-bottom: 12px;
+                    "
+                  >
+                    Solicitud · Input
+                  </div>
+                  <div class="code-wrap">
+                    <div class="code-top">
+                      <span class="code-label">POST · application/json</span>
+                      <div class="code-dots">
+                        <div class="code-dot" style="background: #ff5f57"></div>
+                        <div class="code-dot" style="background: #febc2e"></div>
+                        <div class="code-dot" style="background: #28c840"></div>
+                      </div>
+                    </div>
+                    <pre>{
+  <span class="tok-key">"nombre"</span>: <span class="tok-str">string</span>,       <span class="tok-cmt">// Nombre firmante</span>
+  <span class="tok-key">"correo"</span>: <span class="tok-str">string</span>,       <span class="tok-cmt">// Email válido</span>
+  <span class="tok-key">"ciudad"</span>: <span class="tok-str">string</span>,       <span class="tok-cmt">// Ciudad emisora</span>
+  <span class="tok-key">"nombre_documento"</span>: <span class="tok-str">string</span>, <span class="tok-cmt">// archivo.html</span>
+  <span class="tok-key">"html_contenido"</span>: <span class="tok-str">string</span>,  <span class="tok-cmt">// HTML del doc</span>
+  <span class="tok-key">"firma_ruta"</span>: <span class="tok-str">string</span>       <span class="tok-cmt">// Ruta absoluta</span>
+}</pre>
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-family: var(--mono);
+                      font-size: 10px;
+                      font-weight: 500;
+                      letter-spacing: 0.1em;
+                      text-transform: uppercase;
+                      color: var(--text-3);
+                      margin-bottom: 12px;
+                    "
+                  >
+                    Respuesta · Output
+                  </div>
+                  <div class="code-wrap">
+                    <div class="code-top">
+                      <span class="code-label">200 OK · application/json</span>
+                      <div class="code-dots">
+                        <div class="code-dot" style="background: #ff5f57"></div>
+                        <div class="code-dot" style="background: #febc2e"></div>
+                        <div class="code-dot" style="background: #28c840"></div>
+                      </div>
+                    </div>
+                    <pre>{
+  <span class="tok-key">"error"</span>: <span class="tok-num">false</span>,
+  <span class="tok-key">"message"</span>: <span class="tok-str">"Firmado correctamente"</span>,
+  <span class="tok-key">"archivo_pdf"</span>: <span class="tok-str">"/docs/firmados/..."</span>,
+  <span class="tok-key">"archivo_qr"</span>: <span class="tok-str">"/docs/qrs/..."</span>
+
+  <span class="tok-cmt">// En caso de error:</span>
+  <span class="tok-key">"error"</span>: <span class="tok-num">true</span>,
+  <span class="tok-key">"message"</span>: <span class="tok-str">"Descripción del fallo"</span>
+}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 07 SEGURIDAD -->
+        <section id="seguridad" class="section">
+          <div class="section-inner">
+            <div class="section-head">
+              <span class="section-num">07</span>
+              <div class="section-title-wrap">
+                <div class="section-title">Seguridad y buenas prácticas</div>
+                <p class="section-desc">
+                  Esta API maneja certificados digitales, rutas de archivos
+                  sensibles y documentos con validez institucional. Los
+                  controles de seguridad deben documentarse y auditarse desde el
+                  inicio del despliegue.
+                </p>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="sec-grid">
+                <div class="sec-card">
+                  <h4>🔐 Protección del certificado</h4>
+                  <ul>
+                    <li>
+                      Restringir acceso directo a
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >/certificados/</code
+                      >
+                      mediante reglas de servidor web
+                    </li>
+                    <li>
+                      No exponer clave privada en repositorios ni sistemas de
+                      respaldo inseguros
+                    </li>
+                    <li>
+                      Usar permisos mínimos necesarios a nivel de sistema
+                      operativo (chmod 400)
+                    </li>
+                    <li>
+                      Separar rutas sensibles en archivos de configuración
+                      protegidos fuera del webroot
+                    </li>
+                  </ul>
+                </div>
+                <div class="sec-card">
+                  <h4>🗂️ Control de archivos temporales</h4>
+                  <ul>
+                    <li>
+                      Eliminar periódicamente el contenido de
+                      <code
+                        style="
+                          font-family: var(--mono);
+                          font-size: 11px;
+                          background: var(--surface);
+                          padding: 1px 6px;
+                          border-radius: 3px;
+                        "
+                        >/tmp/</code
+                      >
+                      con cron job automatizado
+                    </li>
+                    <li>
+                      Validar tipo y tamaño de archivo antes de convertir o
+                      insertar recursos
+                    </li>
+                    <li>
+                      Evitar dejar firmas visibles o documentos preliminares de
+                      forma indefinida
+                    </li>
+                    <li>
+                      Usar nombres únicos (UUID o hash) para prevenir colisiones
+                      entre solicitudes concurrentes
+                    </li>
+                  </ul>
+                </div>
+                <div class="sec-card">
+                  <h4>🌐 Control de acceso HTTP</h4>
+                  <ul>
+                    <li>
+                      Proteger endpoints con autenticación por token o API key
+                    </li>
+                    <li>
+                      Validar origen de solicitudes y aplicar CORS restrictivo
+                    </li>
+                    <li>
+                      Limitar tasa de solicitudes para prevenir abuso del
+                      proceso de firma
+                    </li>
+                    <li>
+                      Registrar en log cada operación de firma con identificador
+                      trazable
+                    </li>
+                  </ul>
+                </div>
+                <div class="sec-card">
+                  <h4>📋 Rotación y validez del certificado</h4>
+                  <ul>
+                    <li>
+                      Documentar fecha de expiración del certificado digital y
+                      programar renovación
+                    </li>
+                    <li>
+                      Mantener un registro de documentos firmados con cada
+                      versión del certificado
+                    </li>
+                    <li>
+                      Definir proceso de revocación si el certificado es
+                      comprometido
+                    </li>
+                    <li>
+                      Verificar integridad del certificado antes de cada ciclo
+                      de firma en producción
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div class="notice">
+                <strong>Importante:</strong> La carpeta de certificados, la
+                carpeta temporal y la de documentos firmados deben formar parte
+                del plan de seguridad operativa. En una documentación
+                profesional conviene especificar permisos exactos, política de
+                limpieza, rotación de certificados y control de acceso a los
+                archivos emitidos con validez institucional.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 08 DEPS -->
+        <section id="deps" class="section">
+          <div class="section-inner">
+            <div class="section-head">
+              <span class="section-num">08</span>
+              <div class="section-title-wrap">
+                <div class="section-title">Dependencias tecnológicas</div>
+                <p class="section-desc">
+                  Librerías que dan soporte al flujo documental. Documentarlas
+                  explícitamente facilita mantenimiento, instalación y soporte a
+                  largo plazo.
+                </p>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="deps-grid">
+                <div class="dep">
+                  <div class="dep-name">
+                    <span class="badge badge-blue" style="font-size: 9px"
+                      >PDF</span
+                    >
+                    FPDF
+                  </div>
+                  <p>
+                    Generación programática de documentos PDF con control
+                    detallado sobre texto, imágenes y posicionamiento de
+                    elementos.
+                  </p>
+                </div>
+                <div class="dep">
+                  <div class="dep-name">
+                    <span class="badge badge-blue" style="font-size: 9px"
+                      >PDF</span
+                    >
+                    FPDI
+                  </div>
+                  <p>
+                    Importación y reutilización de páginas PDF existentes para
+                    componer o extender documentos antes del sellado final.
+                  </p>
+                </div>
+                <div class="dep">
+                  <div class="dep-name">
+                    <span class="badge badge-purple" style="font-size: 9px"
+                      >HTML→PDF</span
+                    >
+                    DOMPDF
+                  </div>
+                  <p>
+                    Conversión de contenido HTML a PDF, útil cuando el documento
+                    nace desde plantillas web o contenido renderizado
+                    dinámicamente.
+                  </p>
+                </div>
+                <div class="dep">
+                  <div class="dep-name">
+                    <span class="badge badge-green" style="font-size: 9px"
+                      >QR</span
+                    >
+                    phpqrcode
+                  </div>
+                  <p>
+                    Generación de códigos QR para validación, trazabilidad o
+                    acceso rápido al documento o sus metadatos desde
+                    dispositivos móviles.
+                  </p>
+                </div>
+                <div class="dep">
+                  <div class="dep-name">
+                    <span class="badge badge-amber" style="font-size: 9px"
+                      >MAIL</span
+                    >
+                    phpmailer
+                  </div>
+                  <p>
+                    Envío de documentos firmados por correo electrónico. Soporte
+                    SMTP, adjuntos y plantillas HTML para notificaciones
+                    institucionales.
+                  </p>
+                </div>
+                <div class="dep">
+                  <div class="dep-name">
+                    <span class="badge badge-slate" style="font-size: 9px"
+                      >HTTP</span
+                    >
+                    Slim
+                  </div>
+                  <p>
+                    Micro-framework PHP que estructura las rutas HTTP de la API,
+                    el middleware y el manejo de solicitudes y respuestas de
+                    forma limpia.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 09 RECS -->
+        <section id="recs" class="section">
+          <div class="section-inner">
+            <div class="section-head">
+              <span class="section-num">09</span>
+              <div class="section-title-wrap">
+                <div class="section-title">
+                  Recomendaciones para completar la documentación
+                </div>
+                <p class="section-desc">
+                  Esta base cubre la arquitectura y operación del sistema. Para
+                  cerrar una documentación completamente profesional, incorpora
+                  los elementos reales de tu implementación.
+                </p>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="recs-grid">
+                <div class="rec">
+                  <div class="rec-step">REC 01</div>
+                  <h4>Agregar rutas reales</h4>
+                  <p>
+                    Documenta las URLs productivas exactas, métodos HTTP
+                    aceptados, headers requeridos y la forma de autenticación
+                    implementada en cada endpoint.
+                  </p>
+                </div>
+                <div class="rec">
+                  <div class="rec-step">REC 02</div>
+                  <h4>Incluir errores controlados</h4>
+                  <p>
+                    Describe respuestas de error: archivo inválido, firma
+                    incompatible, falta de permisos, certificado ausente o
+                    vencido, y fallo durante la generación del PDF.
+                  </p>
+                </div>
+                <div class="rec">
+                  <div class="rec-step">REC 03</div>
+                  <h4>Documentar validación</h4>
+                  <p>
+                    Explica cómo verificar el documento firmado, cómo
+                    interpretar el QR adjunto y qué archivo tiene validez
+                    oficial dentro del flujo documental institucional.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="footer">
+      <span>API Firma Digital · Documentación técnica v1.0</span>
+      <span style="display: flex; align-items: center; gap: 8px">
+        <span
+          style="
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #22c55e;
+          "
+        ></span>
+        Sistema operativo · /var/www/html/ApiFirma/
+      </span>
+    </footer>
+  </body>
+</html>

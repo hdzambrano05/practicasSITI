@@ -1,0 +1,6 @@
+coverage
+demo
+misc
+ts-test
+sample.*
+*.tgz

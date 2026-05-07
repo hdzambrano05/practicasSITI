@@ -1,0 +1,1 @@
+2026-04-10 15:41:08: imagepng(/var/www/html/ApiFirma/docs/qrs/3041a24bc9ebb4e9f0fd706fb62f0205.png): failed to open stream: Permission denied
